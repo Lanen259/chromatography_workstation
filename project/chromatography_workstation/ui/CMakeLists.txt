@@ -2,7 +2,7 @@
 cdsw_add_module(ui core_model core_processing acq io report)
 find_package(Qt6 COMPONENTS Widgets QUIET)
 if(NOT Qt6_FOUND)
-    find_package(Qt5 5.15 COMPONENTS Widgets QUIET)
+    find_package(Qt5 COMPONENTS Widgets QUIET)
 endif()
 if(TARGET Qt6::Widgets)
     target_link_libraries(ui PUBLIC Qt6::Widgets)
