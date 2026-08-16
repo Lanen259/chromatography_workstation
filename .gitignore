@@ -1,0 +1,19 @@
+# 构建产物
+build/
+build-*/
+*.obj
+*.o
+
+# worktree 工作位置（由主仓库链接管理，不是仓库内容）
+worktrees/
+
+# Qt Creator / IDE
+*.user
+*.autosave
+*.pro.user
+*.creator
+.cache/
+
+# 系统
+.DS_Store
+Thumbs.db
