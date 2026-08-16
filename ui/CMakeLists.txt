@@ -1,0 +1,13 @@
+# ui —— 界面层（契约 §4.6，唯一允许 QtWidgets 的模块）
+cdsw_add_module(ui core_model core_processing acq io report)
+find_package(Qt6 COMPONENTS Widgets QUIET)
+if(NOT Qt6_FOUND)
+    find_package(Qt5 5.15 COMPONENTS Widgets QUIET)
+endif()
+if(TARGET Qt6::Widgets)
+    target_link_libraries(ui PUBLIC Qt6::Widgets)
+elseif(TARGET Qt5::Widgets)
+    target_link_libraries(ui PUBLIC Qt5::Widgets)
+else()
+    message(WARNING "未找到 Qt Widgets：ui 模块需在装有 Qt GUI 的环境编译（契约 §8.3 可 CDSW_BUILD_UI=OFF 跳过）")
+endif()
