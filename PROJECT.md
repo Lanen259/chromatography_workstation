@@ -16,7 +16,7 @@
 |---|---|---|---|
 | M0 | 契约 + Qt 主工程骨架 + worktree 框架 | ✅ 2026-08-16 | Qt 工程 MinGW 全量构建通过 |
 | M1 | **core_model**（领域模型，含测试）合并 main | 🔨 待开工 | 自身 ctest 绿 |
-| M2 | core_processing（处理引擎） | ⏳ 待开工（阻塞于 M1） | 金标准信号测试绿 |
+| M2 | core_processing（处理引擎） | 🔨 代码完成测试全绿，待合并 | 金标准信号测试绿 ✅ |
 | M3 | acq（采集，自研无参考）—— **首块 = 实时反控协议接收链**（[docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | ⏳ 待开工 | mock 测试绿（协议复刻示例端到端绿） |
 | M4 | io（CSV 转换器） | ⏳ 待开工 | 回环测试绿 |
 | M5 | report（报告器） | ⏳ 待开工 | 金样测试绿 |
@@ -28,8 +28,8 @@
 | 模块 | 分支 | worktree 目录 | 状态 | 下一步 | 参考逆向文档 | 阻塞 |
 |---|---|---|---|---|---|---|
 | core_model | dev-core_model | worktrees/core_model/ | ✅ 已合 main | M1 完成（接口+实现+测试全绿，2026-08-18 合回 main，commit 5b2d092） | MODULE_02, MODULE_04 | 无 |
-| core_processing | dev-core_processing | worktrees/core_processing/ | 待开工 | M2 | MODULE_03, MODULE_09, MODULE_10 | 等 M1 合 main |
-| acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 等 M1 合 main |
+| core_processing | dev-core_processing | worktrees/core_processing/ | ✅ 已合 main | M2 完成（§4.2 接口 + 5 内置算法 + Registry + ProcessingPipeline + 金标准测试全绿，2026-08-18 合回 main） | MODULE_03, MODULE_04, MODULE_09, MODULE_10 | 无 |
+| acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 无（M1/M2 已合，可并行） |
 | io | dev-io | worktrees/io/ | 待开工 | M4 | MODULE_01 | 等 M1 |
 | report | dev-report | worktrees/report/ | 待开工 | M5 | MODULE_06 | 等 M1 |
 | ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
