@@ -43,6 +43,9 @@ private:
     std::atomic<int> m_tail{0};   // 消费者排空 / 生产者满时覆盖：最旧未读索引（单调递增）
 };
 
+static_assert(std::atomic<double>::is_always_lock_free,
+              "RingBuffer 依赖 std::atomic<double> 无锁（x86-64 对齐 8 字节）");
+
 // 采集控制器：持有 IDevice，后台线程轮询 read → 环形缓冲 → 批量信号。
 class AcquisitionController : public QObject {
     Q_OBJECT

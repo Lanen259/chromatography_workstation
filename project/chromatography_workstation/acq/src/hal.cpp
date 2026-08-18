@@ -26,11 +26,16 @@ bool RingBuffer::write(const double* data, int count)
     int tail = m_tail.load(std::memory_order_acquire);
     for (int i = 0; i < count; ++i) {
         if (head - tail >= m_capacity) {
-            // 满：重载消费者最新位置，确认真满后才覆盖最旧（tail 前移一格腾位，保新）
+            // 满：重载消费者最新位置，确认真满后才覆盖最旧（tail 单调前移，永不回退 → 保新且无重复读）
             tail = m_tail.load(std::memory_order_acquire);
             if (head - tail >= m_capacity) {
-                tail = head - m_capacity + 1;
-                m_tail.store(tail, std::memory_order_relaxed);
+                const int newVal = head - m_capacity + 1;
+                while (tail < newVal) {
+                    if (m_tail.compare_exchange_weak(tail, newVal,
+                            std::memory_order_release, std::memory_order_acquire))
+                        break;   // 成功把 tail 推进到 newVal（丢最旧）
+                    // CAS 失败：tail 已被消费者推进 → 重循环；若 ≥ newVal 则不再需要写
+                }
             }
         }
         m_data[head % m_capacity].store(data[i], std::memory_order_relaxed);
@@ -45,14 +50,21 @@ int RingBuffer::read(double* out, int maxCount)
     if (!out || maxCount <= 0)
         return 0;
     const int head = m_head.load(std::memory_order_acquire);
-    const int tail = m_tail.load(std::memory_order_relaxed);
+    int tail = m_tail.load(std::memory_order_acquire);
     const int avail = head - tail;
     if (avail <= 0)
         return 0;
     const int n = std::min(avail, maxCount);
     for (int i = 0; i < n; ++i)
         out[i] = m_data[(tail + i) % m_capacity].load(std::memory_order_relaxed);
-    m_tail.store(tail + n, std::memory_order_release);
+    // tail 单调推进（与 write() 满时覆盖共用同一 CAS 协议）：永不回退。
+    // 若 CAS 失败 → tail 已被生产者覆盖推进 → 若已 ≥ newTail 则放弃推进（防推回旧值）。
+    const int newTail = tail + n;
+    while (tail < newTail) {
+        if (m_tail.compare_exchange_weak(tail, newTail,
+                std::memory_order_release, std::memory_order_acquire))
+            break;
+    }
     return n;
 }
 

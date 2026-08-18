@@ -55,6 +55,7 @@ private slots:
     void overflowOverwritesOldest();
     void capacityClampAndAccessors();
     void spscStress();
+    void overwriteConcurrentStress();
 };
 
 void RingBufferTest::basicReadWrite()
@@ -157,6 +158,57 @@ void RingBufferTest::spscStress()
 
     QCOMPARE(readCount, N);
     QCOMPARE(sum, static_cast<qint64>(N) * (N - 1) / 2);
+}
+
+void RingBufferTest::overwriteConcurrentStress()
+{
+    // 并发 + 覆盖：容量小、样本大 → 必然覆盖；校验"保新"不变量（tail 不回退）
+    const int cap = 8;
+    const int N = 100000;
+    RingBuffer rb(cap);
+    std::atomic<bool> producerDone{ false };
+    qint64 readCount = 0;
+    qint64 lastValue = -1;
+    qint64 minValue = N;
+    qint64 maxValue = -1;
+    int maxAvailableSeen = 0;
+
+    std::thread consumer([&] {
+        double buf[256];
+        while (true) {
+            const int n = rb.read(buf, 256);
+            if (n > 0) {
+                for (int i = 0; i < n; ++i) {
+                    const qint64 v = static_cast<qint64>(buf[i]);
+                    minValue = std::min(minValue, v);
+                    maxValue = std::max(maxValue, v);
+                    lastValue = v;
+                }
+                readCount += n;
+                maxAvailableSeen = std::max(maxAvailableSeen, rb.available());
+            } else if (producerDone.load(std::memory_order_acquire)) {
+                break;
+            } else {
+                std::this_thread::yield();
+            }
+        }
+    });
+
+    double in[64];
+    for (int base = 0; base < N; base += 64) {
+        const int m = std::min(64, N - base);
+        for (int i = 0; i < m; ++i)
+            in[i] = static_cast<double>(base + i);
+        rb.write(in, m);
+    }
+    producerDone.store(true, std::memory_order_release);
+    consumer.join();
+
+    QVERIFY2(readCount <= N, "并发覆盖下读出样本数不得超过写入总数（tail 不回退）");
+    QVERIFY2(readCount >= cap, "并发覆盖下消费者至少读到一个满缓冲（保新语义成立）");
+    QVERIFY2(maxAvailableSeen <= cap, "available() 恒不得超过 capacity()（tail 不回退）");
+    QVERIFY2(minValue >= 0 && maxValue <= N - 1, "读出的值必须在 [0, N) 值域内");
+    QCOMPARE(lastValue, qint64(N - 1));   // 最新样本最终被读到（保新）
 }
 
 // ---------- HwRealtimeReceiver 解码（data3 0–17） ----------
