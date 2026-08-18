@@ -19,7 +19,7 @@
 | M2 | core_processing（处理引擎） | ✅ 2026-08-18 | 金标准信号测试绿 |
 | M3 | acq（采集，自研无参考）—— 首块 = 实时反控协议接收链（[docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 🔨 M3a 已合 main；**M3b IPC 端点待开工** | mock 测试绿（协议复刻示例端到端绿）✅ |
 | M4 | io（CSV 转换器） | 🔨 可并行开工 | 回环测试绿 |
-| M5 | report（报告器） | 🔨 可并行开工 | 金样测试绿 |
+| M5 | report（报告器） | 🔨 代码完成测试全绿，待合并 | 金样测试绿 ✅ |
 | M6 | ui（视图） | ⏳ 待开工（等接口稳定） | offscreen 冒烟绿 |
 | M7 | Qt 主工程集成 + 端到端 | ⏳ 待开工 | 全模块 ctest 绿 + 可运行 exe |
 
@@ -31,7 +31,7 @@
 | core_processing | dev-core_processing | worktrees/core_processing/ | ✅ 已合 main | M2 完成（§4.2 接口 + 5 内置算法 + Registry + ProcessingPipeline + 金标准测试全绿，2026-08-18 合回 main，commit e502f08） | MODULE_03, MODULE_04, MODULE_09, MODULE_10 | 无 |
 | acq | dev-acq | worktrees/acq/ | ✅ 已合 main | M3a 实时反控协议接收链完成（`HwRealtimeReceiver` 解码 data3 0–17 + RingBuffer 覆盖最旧保新 + AcquisitionController + MockDevice/§5 复刻端到端，ctest 全绿，2026-08-18 合回 main）；**下一步 M3b：IPC 端点（QLocalServer 适配 CtrlPanel）** | 无（社区版无采集代码） | 无 |
 | io | dev-io | worktrees/io/ | 待开工 | M4 CSV 转换器（ImporterCsv/ExporterCsv + ConverterRegistry + 回环测试） | MODULE_01 | 无（M1/M2/M3a 已合，可并行） |
-| report | dev-report | worktrees/report/ | 待开工 | M5 CSV 报告器（IReporter + ReportRegistry + 金样测试） | MODULE_06 | 无（M1/M2/M3a 已合，可并行） |
+| report | dev-report | worktrees/report/ | ✅ 待合并 | M5 完成（契约 §4.5 接口 + ReporterCsv 分区式 CSV + ReportRegistry + 金样逐字节比对测试全绿，2026-08-18，ctest report 全绿） | MODULE_06 | 无 |
 | ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
 
 > 逆向文档路径：`docs/openchrom-reverse-engineering/module/`（MODULE_XX 前缀）。
