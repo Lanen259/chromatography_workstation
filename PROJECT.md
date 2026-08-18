@@ -30,7 +30,7 @@
 | core_model | dev-core_model | worktrees/core_model/ | ✅ 已合 main | M1 完成（接口+实现+测试全绿，2026-08-18 合回 main，commit 5b2d092） | MODULE_02, MODULE_04 | 无 |
 | core_processing | dev-core_processing | worktrees/core_processing/ | ✅ 已合 main | M2 完成（§4.2 接口 + 5 内置算法 + Registry + ProcessingPipeline + 金标准测试全绿，2026-08-18 合回 main，commit e502f08） | MODULE_03, MODULE_04, MODULE_09, MODULE_10 | 无 |
 | acq | dev-acq | worktrees/acq/ | ✅ 已合 main | M3a 实时反控协议接收链完成（`HwRealtimeReceiver` 解码 data3 0–17 + RingBuffer 覆盖最旧保新 + AcquisitionController + MockDevice/§5 复刻端到端，ctest 全绿，2026-08-18 合回 main）；**下一步 M3b：IPC 端点（QLocalServer 适配 CtrlPanel）** | 无（社区版无采集代码） | 无 |
-| io | dev-io | worktrees/io/ | 待开工 | M4 CSV 转换器（ImporterCsv/ExporterCsv + ConverterRegistry + 回环测试） | MODULE_01 | 无（M1/M2/M3a 已合，可并行） |
+| io | dev-io | worktrees/io/ | 待合并 | M4 完成（ImporterCsv/ExporterCsv + ConverterRegistry + 回环/空文件/坏行/表头变体/导出字节/注册表/失败路径测试 7 用例全绿 + 全量构建 0 error，2026-08-18；等主控审查合并） | MODULE_01 | 无 |
 | report | dev-report | worktrees/report/ | 待开工 | M5 CSV 报告器（IReporter + ReportRegistry + 金样测试） | MODULE_06 | 无（M1/M2/M3a 已合，可并行） |
 | ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
 
