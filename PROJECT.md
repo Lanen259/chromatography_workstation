@@ -15,12 +15,12 @@
 | 里程碑 | 内容 | 状态 | 验收 |
 |---|---|---|---|
 | M0 | 契约 + Qt 主工程骨架 + worktree 框架 | ✅ 2026-08-16 | Qt 工程 MinGW 全量构建通过 |
-| M1 | **core_model**（领域模型，含测试）合并 main | 🔨 待开工 | 自身 ctest 绿 |
-| M2 | core_processing（处理引擎） | 🔨 代码完成测试全绿，待合并 | 金标准信号测试绿 ✅ |
-| M3 | acq（采集，自研无参考）—— **首块 = 实时反控协议接收链**（[docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | ⏳ 待开工 | mock 测试绿（协议复刻示例端到端绿） |
-| M4 | io（CSV 转换器） | ⏳ 待开工 | 回环测试绿 |
-| M5 | report（报告器） | ⏳ 待开工 | 金样测试绿 |
-| M6 | ui（视图） | ⏳ 待开工 | offscreen 冒烟绿 |
+| M1 | **core_model**（领域模型，含测试）合并 main | ✅ 2026-08-18 | 自身 ctest 绿 |
+| M2 | core_processing（处理引擎） | ✅ 2026-08-18 | 金标准信号测试绿 |
+| M3 | acq（采集，自研无参考）—— 首块 = 实时反控协议接收链（[docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 🔨 M3a 已合 main；**M3b IPC 端点待开工** | mock 测试绿（协议复刻示例端到端绿）✅ |
+| M4 | io（CSV 转换器） | 🔨 可并行开工 | 回环测试绿 |
+| M5 | report（报告器） | 🔨 可并行开工 | 金样测试绿 |
+| M6 | ui（视图） | ⏳ 待开工（等接口稳定） | offscreen 冒烟绿 |
 | M7 | Qt 主工程集成 + 端到端 | ⏳ 待开工 | 全模块 ctest 绿 + 可运行 exe |
 
 ## 2. 模块状态表
@@ -48,6 +48,9 @@
 | acee7c1 | doc：OpenChrom 逆向知识库（31 文档，收官基线） |
 | ac136b9 | doc(style)：UI 设计规范 §8（.ui 优先）+ 契约 §4.6 + 提交在途的 M1 冻结口径 |
 | 5b2d092 | M1：core_model 领域模型（§4.1 接口 + 实现 + QTest）+ cdsw_module.cmake AUTOMOC 修复 合回 main |
+| 3db1ba5 | doc：M1 合回后的状态更新（PROJECT.md 看板 / 治理规范 D7 人工审查门禁 / CLAUDE.md 必读顺序） |
+| e502f08 | M2：core_processing 处理引擎（§4.2 接口 + Registry + ProcessingPipeline + 5 内置算法 + 金标准测试）合回 main |
+| c6d9bbb | M3a：acq 实时反控协议接收链（HwRealtimeReceiver 解码 data3 0–17 + RingBuffer + AcquisitionController + QTest）合回 main |
 
 ## 4. 决策日志
 
@@ -60,6 +63,8 @@
 | 2026-08-16 | 并行：每模块一 worktree 分支，ctest 全绿才合并回 main |
 | 2026-08-16 | acq 无逆向参考（社区版无采集代码），需自研 |
 | 2026-08-18 | 实时反控协议（HWSendData 语义，data3 0–17）纳入 M3 首块；接收侧由我方定制 `HwRealtimeReceiver`（传输无关），规格见 docs/protocol/ |
+| 2026-08-18 | M2(core_processing) + M3a(acq) 合回 main（全量构建 0 error + ctest 3/3 绿）；io/report/ui worktree 已同步 main，M4/M5 可并行开工 |
+| 2026-08-18 | 整夜计划：M3b(acq IPC 端点) + M4(io CSV) + M5(report CSV) 三路并行；合并一律等主控人工审查放行 |
 
 ## 5. 合并顺序（不可违反）
 
@@ -79,7 +84,9 @@ core_model → {core_processing, acq, io, report 四路并行} → ui → Qt 主
 
 ---
 
-## 当前唯一阻塞点 → M1 core_model
+## 当前状态（2026-08-18 晚）
 
-其他 5 个模块都依赖 `core_model` 的头文件，所以 **M1 是现在唯一要开的线程**。
-M1 全绿合并回 main 后，M2/M3/M4/M5 可并行开线程，M6 等接口稳定后开。
+**M1 + M2 + M3a 已合 main，全量构建 + ctest 3/3 全绿。**
+- **可并行开工**：M3b（acq IPC 端点，在 `worktrees/acq/`）、M4（io，在 `worktrees/io/`）、M5（report，在 `worktrees/report/`）——三个 worktree 均已同步到 main。
+- **M6（ui）** 等 io/report 接口落定后开；M7 集成在 M6 之后。
+- 每个线程：只许改自己模块的 `include/ src/ tests/ CMakeLists.txt`，全绿后停下等主控审查合并，禁止自行 `git merge main`。
