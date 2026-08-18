@@ -1,0 +1,13 @@
+Sample Name,Benzene Calibration Std
+Method Name,External Standard
+Acquired At,2026-08-18T10:30:00
+Number of Peaks,2
+Number of Quantitation Entries,2
+
+Peak Number,Apex RT (min),Start RT (min),Stop RT (min),Height,Area
+1,1.250000,1.000000,1.500000,52000.000000,104000.000000
+2,3.400000,3.100000,3.700000,31000.000000,77500.000000
+
+Component,Apex RT (min),Area,Concentration,Unit
+Benzene,1.250000,104000.000000,12.500000,mg/L
+Toluene,3.400000,77500.000000,25.000000,mg/L

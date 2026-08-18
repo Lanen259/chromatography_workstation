@@ -87,12 +87,115 @@ void ReportTest::registryDispatch()
     QVERIFY(fake);
 }
 
-// —— 以下用例在 Task 2 实现 generate 后补全，本任务先以 stub 让编译通过 ——
-void ReportTest::goldenReportMatchesReference() { QSKIP("Task 2 实现"); }
-void ReportTest::emptyDataBoundary()            { QSKIP("Task 2 实现"); }
-void ReportTest::peaksWithoutQuant()            { QSKIP("Task 2 实现"); }
-void ReportTest::rfc4180Quoting()               { QSKIP("Task 2 实现"); }
-void ReportTest::generateFailsOnBadPath()       { QSKIP("Task 2 实现"); }
+void ReportTest::goldenReportMatchesReference()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("report.csv"));
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QVERIFY(reporter->generate(makeGoldenData(), outPath));
+
+    const QString goldenPath = QStringLiteral(REPORT_GOLDEN_DIR "/golden_report.csv");
+    QVERIFY2(QFileInfo::exists(goldenPath), qPrintable(goldenPath));
+    QCOMPARE(readFile(outPath), readFile(goldenPath));
+}
+
+void ReportTest::emptyDataBoundary()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("empty.csv"));
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QVERIFY(reporter->generate(ReportData(), outPath));
+
+    const QString expected = QStringLiteral(
+        "Sample Name,\n"
+        "Method Name,\n"
+        "Acquired At,\n"
+        "Number of Peaks,0\n"
+        "Number of Quantitation Entries,0\n"
+        "\n"
+        "Peak Number,Apex RT (min),Start RT (min),Stop RT (min),Height,Area\n"
+        "\n"
+        "Component,Apex RT (min),Area,Concentration,Unit\n");
+    QCOMPARE(QString::fromUtf8(readFile(outPath)), expected);
+}
+
+void ReportTest::peaksWithoutQuant()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("peaks_only.csv"));
+
+    ReportData d;
+    d.sampleName = QStringLiteral("Sample With Peaks");
+    d.acquiredAt = QDateTime(QDate(2026, 8, 18), QTime(9, 0, 0));
+    d.peaks = { Peak{ 60000, 75000, 90000, 52000.0, 104000.0 } };
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QVERIFY(reporter->generate(d, outPath));
+
+    const QString expected = QStringLiteral(
+        "Sample Name,Sample With Peaks\n"
+        "Method Name,\n"
+        "Acquired At,2026-08-18T09:00:00\n"
+        "Number of Peaks,1\n"
+        "Number of Quantitation Entries,0\n"
+        "\n"
+        "Peak Number,Apex RT (min),Start RT (min),Stop RT (min),Height,Area\n"
+        "1,1.250000,1.000000,1.500000,52000.000000,104000.000000\n"
+        "\n"
+        "Component,Apex RT (min),Area,Concentration,Unit\n");
+    QCOMPARE(QString::fromUtf8(readFile(outPath)), expected);
+}
+
+void ReportTest::rfc4180Quoting()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("quoting.csv"));
+
+    ReportData d;
+    d.sampleName = QStringLiteral("A,B");                 // 含逗号 → 加引号
+    d.methodName = QStringLiteral("Say \"hi\"");          // 含双引号 → 内部翻倍
+    d.peaks = { Peak{ 60000, 60000, 60000, 1.0, 2.0 } };
+    d.quantEntries = { QuantEntry{ 60000, QStringLiteral("line1\nline2"), 2.0, 0.0, QString() } }; // 含换行 → 加引号
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QVERIFY(reporter->generate(d, outPath));
+
+    const QString expected = QStringLiteral(
+        "Sample Name,\"A,B\"\n"
+        "Method Name,\"Say \"\"hi\"\"\"\n"
+        "Acquired At,\n"
+        "Number of Peaks,1\n"
+        "Number of Quantitation Entries,1\n"
+        "\n"
+        "Peak Number,Apex RT (min),Start RT (min),Stop RT (min),Height,Area\n"
+        "1,1.000000,1.000000,1.000000,1.000000,2.000000\n"
+        "\n"
+        "Component,Apex RT (min),Area,Concentration,Unit\n"
+        "\"line1\nline2\",1.000000,2.000000,0.000000,\n");
+    QCOMPARE(QString::fromUtf8(readFile(outPath)), expected);
+}
+
+void ReportTest::generateFailsOnBadPath()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    // 父目录不存在 → QFile::open(WriteOnly) 失败 → generate 返回 false
+    const QString badPath = dir.filePath(QStringLiteral("missing/report.csv"));
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QCOMPARE(reporter->generate(ReportData(), badPath), false);
+}
 
 QTEST_APPLESS_MAIN(ReportTest)
 #include "t_report.moc"
