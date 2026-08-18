@@ -12,6 +12,12 @@
 #include <ui/PeakTableModel.h>
 #include <ui/PeakTableView.h>
 #include <ui/ChromatogramView.h>
+#include <ui/MethodEditorView.h>
+
+#include <QComboBox>
+#include <QListWidget>
+#include <QPushButton>
+#include <QTableWidget>
 
 using cdsw::Signal;
 using cdsw::Chromatogram;
@@ -25,6 +31,7 @@ using cdsw::SelectionController;
 using cdsw::PeakTableModel;
 using cdsw::PeakTableView;
 using cdsw::ChromatogramView;
+using cdsw::MethodEditorView;
 
 namespace {
 
@@ -69,6 +76,7 @@ private slots:
     void peakTableModelShowsPeaks();
     void peakTableModelEmpty();
     void chromatogramViewRendersSelectsAndZooms();
+    void methodEditorEditsSteps();
 };
 
 void UiTest::selectionControllerRunsPipeline()
@@ -161,6 +169,58 @@ void UiTest::chromatogramViewRendersSelectsAndZooms()
     view.repaint();
     QCOMPARE(view.selectionStartMs(), qint64(300));
     QCOMPARE(view.selectionStopMs(), qint64(800));
+}
+
+void UiTest::methodEditorEditsSteps()
+{
+    MethodEditorView view;
+    view.show();
+    Method method;
+    method.steps.append(ProcessingStep{ QStringLiteral("sg_smooth"), QVariantMap() });
+    method.steps.append(ProcessingStep{ QStringLiteral("first_derivative_peak_detector"), QVariantMap() });
+    view.setMethod(&method);
+
+    auto* list = view.findChild<QListWidget*>(QStringLiteral("listSteps"));
+    auto* combo = view.findChild<QComboBox*>(QStringLiteral("comboAlgorithm"));
+    auto* addBtn = view.findChild<QPushButton*>(QStringLiteral("btnAdd"));
+    auto* removeBtn = view.findChild<QPushButton*>(QStringLiteral("btnRemove"));
+    auto* upBtn = view.findChild<QPushButton*>(QStringLiteral("btnUp"));
+    QVERIFY(list && combo && addBtn && removeBtn && upBtn);
+
+    QSignalSpy spy(&view, &MethodEditorView::sigMethodChanged);
+    QCOMPARE(list->count(), 2);
+
+    // Add：从注册表选 sg_smooth → 追加到方法
+    const int idx = combo->findText(QStringLiteral("sg_smooth"));
+    QVERIFY(idx >= 0);
+    combo->setCurrentIndex(idx);
+    QTest::mouseClick(addBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.size(), 3);
+    QCOMPARE(method.steps.last().id, QStringLiteral("sg_smooth"));
+    QCOMPARE(list->count(), 3);
+    QCOMPARE(spy.count(), 1);
+
+    // MoveUp：最后一项上移
+    list->setCurrentRow(2);
+    QTest::mouseClick(upBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.at(1).id, QStringLiteral("sg_smooth"));
+    QCOMPARE(spy.count(), 2);
+
+    // Remove：删除当前项
+    list->setCurrentRow(1);
+    QTest::mouseClick(removeBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.size(), 2);
+    QCOMPARE(spy.count(), 3);
+
+    // 参数编辑：选中步骤 0，写参数表 → 写回 method
+    list->setCurrentRow(0);
+    auto* table = view.findChild<QTableWidget*>(QStringLiteral("tableParams"));
+    QVERIFY(table);
+    table->setRowCount(1);
+    table->setItem(0, 0, new QTableWidgetItem(QStringLiteral("threshold")));
+    table->setItem(0, 1, new QTableWidgetItem(QStringLiteral("MEDIUM")));
+    QCOMPARE(method.steps.at(0).parameters.value(QStringLiteral("threshold")).toString(),
+             QStringLiteral("MEDIUM"));
 }
 
 QTEST_MAIN(UiTest)
