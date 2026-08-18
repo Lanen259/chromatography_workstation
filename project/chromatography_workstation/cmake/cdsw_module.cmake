@@ -39,6 +39,14 @@ function(cdsw_add_module name)
         target_sources(${name} PRIVATE "${placeholder}")
     endif()
 
+    # 接口头也收进 target_sources：AUTOMOC 只处理列在 target 源里的头。
+    # 头文件（含 Q_OBJECT，如 Selection.h）若不列入，同名头规则在 include 目录根
+    # 找不到（实际在 include/<name>/ 下一层），moc 不生成 → Q_OBJECT 符号链接失败。
+    file(GLOB_RECURSE module_headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+    if(module_headers)
+        target_sources(${name} PRIVATE ${module_headers})
+    endif()
+
     # 独立测试（契约 §6：每模块单独 ctest 跑通，可脱离主程序验证）
     if(CDSW_BUILD_TESTS)
         file(GLOB test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
