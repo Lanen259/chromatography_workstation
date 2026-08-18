@@ -87,6 +87,7 @@ private slots:
     void peakDetectorDefaultWindowSize();
     void peakDetectorFlatLineNoPeaks();
     void peakDetectorThresholdMapping();
+    void peakDetectorWindowSizeValidation();
     // —— IntegratorTrapezoid ——
     void integratorTriangleGoldenArea();
     void integratorSlopedBaseline();
@@ -95,10 +96,12 @@ private slots:
     // —— QuantifierCalibration ——
     void quantifierLeastSquares();
     void quantifierSinglePointAndEmpty();
+    void quantifierDegenerateCalibration();
     // —— Registry / ProcessingPipeline ——
     void registryBuiltIns();
     void pipelineFullMethod();
     void pipelineResetProcessed();
+    void pipelineUnknownStepSkipped();
 };
 
 // ---------- FilterSavitzkyGolay ----------
@@ -301,6 +304,25 @@ void TestCoreProcessing::peakDetectorThresholdMapping()
     QCOMPARE(PeakDetectorFirstDerivative::thresholdValue(QStringLiteral("garbage")), 0.05);
 }
 
+void TestCoreProcessing::peakDetectorWindowSizeValidation()
+{
+    // windowSize 越界钳位（0–45 奇数含 0，OpenChrom IntSettings 校验）：负数→0、偶数→奇数，不崩溃
+    Chromatogram chrom = makeTwoPeakChrom();
+    PeakDetectorFirstDerivative d;
+
+    d.configure(mapWith({{QStringLiteral("threshold"), QStringLiteral("MEDIUM")},
+                         {QStringLiteral("windowSize"), -2}}));
+    QList<IRawPeak*> peaks = d.detect(chrom);
+    QCOMPARE(peaks.size(), 2); // 钳到 0 = 关闭平滑 → 与 windowSize 0 等价
+    qDeleteAll(peaks);
+
+    d.configure(mapWith({{QStringLiteral("threshold"), QStringLiteral("MEDIUM")},
+                         {QStringLiteral("windowSize"), 4}})); // 偶数 → 强制奇数
+    peaks = d.detect(chrom);
+    QCOMPARE(peaks.size(), 2);
+    qDeleteAll(peaks);
+}
+
 // ---------- IntegratorTrapezoid ----------
 
 // 三角信号：RT 0..200ms 步 20ms，峰值 50（½·200·50 = 5000；÷100 校正因子 → 50.0）
@@ -472,6 +494,24 @@ void TestCoreProcessing::quantifierSinglePointAndEmpty()
     QVERIFY(std::fabs(entries.at(0).concentration) < 1e-12);
 }
 
+void TestCoreProcessing::quantifierDegenerateCalibration()
+{
+    // 退化校准（所有点同浓度 → 法方程分母 0）：不崩溃、浓度 0
+    CalibrationTable degenerate;
+    degenerate.componentName = QStringLiteral("x");
+    degenerate.points = {{1.0, 100.0}, {1.0, 200.0}};
+    QList<Peak> peaks;
+    Peak p;
+    p.apexRTMs = 600;
+    p.peakArea = 300.0;
+    peaks.append(p);
+
+    QuantifierCalibration q;
+    const QList<QuantEntry> entries = q.quantitate(peaks, degenerate);
+    QCOMPARE(entries.size(), 1);
+    QVERIFY(std::fabs(entries.at(0).concentration) < 1e-12);
+}
+
 // ---------- Registry / ProcessingPipeline ----------
 
 void TestCoreProcessing::registryBuiltIns()
@@ -610,6 +650,30 @@ void TestCoreProcessing::pipelineResetProcessed()
 
     QVERIFY(chrom.processedPoints().isEmpty());
     QCOMPARE(pipeline.peaks().size(), 2);
+}
+
+void TestCoreProcessing::pipelineUnknownStepSkipped()
+{
+    // 未知步骤 id → 跳过继续（OpenChrom 语义，MODULE_03 §7.5），前后步骤仍执行、信号照常上报
+    Chromatogram chrom = makeTwoPeakChrom();
+    ProcessingPipeline pipeline(Registry::instance());
+    QSignalSpy stepSpy(&pipeline, &ProcessingPipeline::sigStepFinished);
+
+    Method method;
+    method.steps.append({QStringLiteral("sg_smooth"),
+                         mapWith({{QStringLiteral("order"), 2}, {QStringLiteral("width"), 5}})});
+    method.steps.append({QStringLiteral("no_such_algorithm"), QVariantMap()});
+    method.steps.append({QStringLiteral("first_derivative_peak_detector"),
+                         mapWith({{QStringLiteral("threshold"), QStringLiteral("MEDIUM")},
+                                  {QStringLiteral("windowSize"), 0}})});
+
+    pipeline.execute(method, chrom);
+
+    QCOMPARE(chrom.processedPoints().size(), chrom.signalPoints().size()); // 未知步前的滤波已执行
+    QCOMPARE(pipeline.peaks().size(), 2);                                  // 未知步后的检测仍执行
+    QCOMPARE(stepSpy.count(), 3);
+    QCOMPARE(stepSpy.at(1).at(0).toInt(), 1);
+    QCOMPARE(stepSpy.at(1).at(1).toString(), QStringLiteral("no_such_algorithm"));
 }
 
 QTEST_APPLESS_MAIN(TestCoreProcessing)

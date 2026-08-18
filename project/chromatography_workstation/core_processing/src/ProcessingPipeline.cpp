@@ -64,7 +64,7 @@ QList<Peak> ProcessingPipeline::buildPeaks(const Chromatogram& chrom,
         const int stopIdx = chrom.scanNumberAtRetentionTime(p.stopRTMs) - 1;
         if (startIdx >= 0 && stopIdx >= startIdx && stopIdx < sig.size())
             p.profile = sig.mid(startIdx, stopIdx - startIdx + 1);
-        // 峰高：峰顶处工作信号强度
+        // 峰高：峰顶处工作信号强度（未扣背景；相对比较/排序足够，积分面积由积分器按 VV 背景另算）
         const int apexIdx = chrom.scanNumberAtRetentionTime(p.apexRTMs) - 1;
         if (apexIdx >= 0 && apexIdx < sig.size())
             p.peakHeight = sig.at(apexIdx).intensity;
@@ -80,6 +80,7 @@ void ProcessingPipeline::execute(const Method& method, Chromatogram& chrom)
     m_quantEntries.clear();
     // 重跑管线 → 覆盖处理后副本（契约 §4.1「改参数→重跑管线→覆盖本副本」）：
     // 清空 processed，首个滤波器从原始开始
+    const bool hadProcessed = !chrom.processedPoints().isEmpty();
     chrom.setProcessedPoints(QVector<Signal>());
 
     bool anyRan = false;
@@ -126,7 +127,8 @@ void ProcessingPipeline::execute(const Method& method, Chromatogram& chrom)
         if (handled)
             anyRan = true;
     }
-    if (anyRan)
+    // 脏标记：有步骤实际执行、或重置清掉了既有 processed 副本，模型都算被改过（契约 §4.1 统一置 true）
+    if (anyRan || hadProcessed)
         chrom.setDirty(true);
     emit sigFinished();
 }

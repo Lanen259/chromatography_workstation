@@ -2,6 +2,8 @@
 //
 // 对应 OpenChrom peakQuantifierSupplier + 校准曲线（MODULE_05）。
 // 对每个峰用校准表线性拟合 area = a·conc + b（最小二乘），反解 concentration = (area−b)/a。
+// 简化：单表/单组分——一张校准表代表一个组分，本次调用的全部峰都套用该表（每峰一个 QuantEntry，
+// componentName 均取表名）；RT 匹配多组分表留待后续里程碑按需扩展。
 // 参数（configure / Method.step.parameters）：
 //   "unit"  定量结果单位（默认空串；校准表本身不带单位，契约 M1 冻结口径）
 // 校准表本体由管线从步骤参数 "componentName" + "points"[{concentration,area}] 构建后传入 quantitate()。

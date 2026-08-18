@@ -1,6 +1,8 @@
 // core_processing/src/QuantifierCalibration.cpp —— 校准曲线定量实现
 #include "QuantifierCalibration.h"
 
+#include <cmath>
+
 namespace cdsw {
 
 void QuantifierCalibration::configure(const QVariantMap& p)
@@ -43,9 +45,10 @@ QList<QuantEntry> QuantifierCalibration::quantitate(const QList<Peak>& peaks,
     for (const Peak& peak : peaks) {
         QuantEntry e;
         e.apexRTMs = peak.apexRTMs;
-        e.componentName = calib.componentName;
+        e.componentName = calib.componentName; // 单表/单组分简化：表名赋给每个峰（见头注释）
         e.area = peak.peakArea;
-        e.concentration = (a != 0.0) ? (peak.peakArea - b) / a : 0.0;
+        // 近零斜率视为无有效曲线（防近水平校准线反解出天文数字浓度）
+        e.concentration = (std::fabs(a) >= 1e-12) ? (peak.peakArea - b) / a : 0.0;
         e.unit = m_unit;
         out.append(e);
     }

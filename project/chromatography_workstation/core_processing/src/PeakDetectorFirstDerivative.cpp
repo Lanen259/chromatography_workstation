@@ -24,6 +24,11 @@ void PeakDetectorFirstDerivative::configure(const QVariantMap& p)
     m_thresholdName =
         p.value(QStringLiteral("threshold"), QStringLiteral("MEDIUM")).toString();
     m_windowSize = p.value(QStringLiteral("windowSize"), 5).toInt();
+    // 与 OpenChrom IntSettings 校验一致（0–45 奇数含 0，MODULE_04 §2.2.5）：越界/负数钳位，
+    // 偶数强制奇数，防止 detect() 里 diff=windowSize/2 产生越界写
+    m_windowSize = qBound(0, m_windowSize, 45);
+    if (m_windowSize > 0 && (m_windowSize % 2) == 0)
+        --m_windowSize;
 }
 
 QString PeakDetectorFirstDerivative::id() const
@@ -92,7 +97,8 @@ QList<IRawPeak*> PeakDetectorFirstDerivative::detect(const Chromatogram& chrom) 
     const double threshold = thresholdValue(m_thresholdName);
     if (S < kConsecutiveScanSteps + 1)
         return peaks;
-    const int lastScan = S - kConsecutiveScanSteps; // Java: size - CONSECUTIVE_SCAN_STEPS → 0 基 = size-4
+    // Java `limit = size - CONSECUTIVE_SCAN_STEPS`（1 基）→ 0 基末次 = size-4
+    const int lastScan = S - kConsecutiveScanSteps - 1;
     for (int i = 0; i <= lastScan; ++i) {
         // detectPeakStart：峰起 = 连续 3 斜率同时 > 阈值 且 严格递增（3 阶拐点上升支）
         int startIdx = -1;
