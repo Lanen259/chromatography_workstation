@@ -11,6 +11,7 @@
 #include <ui/SelectionController.h>
 #include <ui/PeakTableModel.h>
 #include <ui/PeakTableView.h>
+#include <ui/ChromatogramView.h>
 
 using cdsw::Signal;
 using cdsw::Chromatogram;
@@ -23,6 +24,7 @@ using cdsw::Peak;
 using cdsw::SelectionController;
 using cdsw::PeakTableModel;
 using cdsw::PeakTableView;
+using cdsw::ChromatogramView;
 
 namespace {
 
@@ -66,6 +68,7 @@ private slots:
     void selectionControllerRunsPipeline();
     void peakTableModelShowsPeaks();
     void peakTableModelEmpty();
+    void chromatogramViewRendersSelectsAndZooms();
 };
 
 void UiTest::selectionControllerRunsPipeline()
@@ -123,6 +126,41 @@ void UiTest::peakTableModelEmpty()
     PeakTableModel model;
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(model.peaks().isEmpty());
+}
+
+void UiTest::chromatogramViewRendersSelectsAndZooms()
+{
+    ChromatogramView view;
+    Chromatogram chrom = makeTwoPeakChrom();
+    view.resize(400, 200);
+    view.show();                     // offscreen 平台
+    view.setChromatogram(&chrom);
+    QCOMPARE(view.visibleStartMs(), qint64(0));
+    QCOMPARE(view.visibleStopMs(), qint64(2000));
+    view.repaint();                  // paintEvent 不崩
+
+    // 左键拖拽出选区 → sigSelectionRangeChanged（映射回毫秒）
+    QSignalSpy spy(&view, &ChromatogramView::sigSelectionRangeChanged);
+    QTest::mousePress(&view, Qt::LeftButton, Qt::NoModifier, QPoint(50, 50));
+    QTest::mouseMove(&view, QPoint(350, 50), 20);
+    QTest::mouseRelease(&view, Qt::LeftButton, Qt::NoModifier, QPoint(350, 50));
+    QCOMPARE(spy.count(), 1);
+    const qint64 startMs = spy.at(0).at(0).value<qint64>();
+    const qint64 stopMs = spy.at(0).at(1).value<qint64>();
+    QVERIFY(startMs < stopMs);
+    QVERIFY(startMs > 0 && stopMs < 2000);
+
+    // 滚轮缩放走 zoomAt：可见窗收窄
+    const qint64 before = view.visibleStopMs() - view.visibleStartMs();
+    view.zoomAt(qint64(1000), 2.0);
+    QVERIFY(view.visibleStopMs() - view.visibleStartMs() < before);
+
+    // setPeaks / setSelectionRange 重绘不崩
+    view.setPeaks({ Peak{ 60000, 75000, 90000, 52000.0, 104000.0 } });
+    view.setSelectionRange(qint64(300), qint64(800));
+    view.repaint();
+    QCOMPARE(view.selectionStartMs(), qint64(300));
+    QCOMPARE(view.selectionStopMs(), qint64(800));
 }
 
 QTEST_MAIN(UiTest)
