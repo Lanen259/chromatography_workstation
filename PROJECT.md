@@ -27,9 +27,9 @@
 
 | 模块 | 分支 | worktree 目录 | 状态 | 下一步 | 参考逆向文档 | 阻塞 |
 |---|---|---|---|---|---|---|
-| core_model | dev-core_model | worktrees/core_model/ | 待合并 | M1 完成（接口+实现+测试全绿），等主控软件审查 + 人工审查后合回 main | MODULE_02, MODULE_04 | 无（主控需提交 main 里未提交的 §4.1 契约变更，见记忆文件） |
+| core_model | dev-core_model | worktrees/core_model/ | ✅ 已合 main | M1 完成（接口+实现+测试全绿，2026-08-18 合回 main，commit 5b2d092） | MODULE_02, MODULE_04 | 无 |
 | core_processing | dev-core_processing | worktrees/core_processing/ | 待开工 | M2 | MODULE_03, MODULE_09, MODULE_10 | 等 M1 合 main |
-| acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 等 M2 |
+| acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 等 M1 合 main |
 | io | dev-io | worktrees/io/ | 待开工 | M4 | MODULE_01 | 等 M1 |
 | report | dev-report | worktrees/report/ | 待开工 | M5 | MODULE_06 | 等 M1 |
 | ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
@@ -46,6 +46,8 @@
 | bc2ede5 | M0a：6 模块并入 Qt 主工程（方案 A） |
 | a1518fa | 契约 §0 接口规则 + 仓库根 CLAUDE.md |
 | acee7c1 | doc：OpenChrom 逆向知识库（31 文档，收官基线） |
+| ac136b9 | doc(style)：UI 设计规范 §8（.ui 优先）+ 契约 §4.6 + 提交在途的 M1 冻结口径 |
+| 5b2d092 | M1：core_model 领域模型（§4.1 接口 + 实现 + QTest）+ cdsw_module.cmake AUTOMOC 修复 合回 main |
 
 ## 4. 决策日志
 
@@ -62,7 +64,7 @@
 ## 5. 合并顺序（不可违反）
 
 ```
-core_model → core_processing → acq → io → report → ui → Qt 主工程集成
+core_model → {core_processing, acq, io, report 四路并行} → ui → Qt 主工程集成
 ```
 
 ## 6. AI 线程开工 SOP（每个 worktree = 一个独立线程）
