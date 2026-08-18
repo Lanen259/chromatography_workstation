@@ -13,8 +13,7 @@ else()
 endif()
 
 # 复用页面 .ui（cdsw_add_module 不 glob .ui，手动加入；AUTOUIC 生成 ui_*.h）
-target_sources(ui PRIVATE src/MethodEditorView.ui)
-# Task 5 建好 MainWindow.ui 后追加：src/MainWindow.ui
+target_sources(ui PRIVATE src/MethodEditorView.ui src/MainWindow.ui)
 
 # offscreen 冒烟：ui 测试在无显示环境跑（QT_QPA_PLATFORM=offscreen）
 if(CDSW_BUILD_TESTS AND TARGET ui_tests)

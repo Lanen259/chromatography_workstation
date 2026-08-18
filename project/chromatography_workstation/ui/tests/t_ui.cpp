@@ -13,8 +13,10 @@
 #include <ui/PeakTableView.h>
 #include <ui/ChromatogramView.h>
 #include <ui/MethodEditorView.h>
+#include <ui/MainWindow.h>
 
 #include <QComboBox>
+#include <QFile>
 #include <QListWidget>
 #include <QPushButton>
 #include <QTableWidget>
@@ -32,6 +34,7 @@ using cdsw::PeakTableModel;
 using cdsw::PeakTableView;
 using cdsw::ChromatogramView;
 using cdsw::MethodEditorView;
+using cdsw::MainWindow;
 
 namespace {
 
@@ -77,6 +80,7 @@ private slots:
     void peakTableModelEmpty();
     void chromatogramViewRendersSelectsAndZooms();
     void methodEditorEditsSteps();
+    void mainWindowAssemblesAndRuns();
 };
 
 void UiTest::selectionControllerRunsPipeline()
@@ -221,6 +225,32 @@ void UiTest::methodEditorEditsSteps()
     table->setItem(0, 1, new QTableWidgetItem(QStringLiteral("MEDIUM")));
     QCOMPARE(method.steps.at(0).parameters.value(QStringLiteral("threshold")).toString(),
              QStringLiteral("MEDIUM"));
+}
+
+void UiTest::mainWindowAssemblesAndRuns()
+{
+    MainWindow window;
+    window.show();                       // offscreen
+    Chromatogram chrom = makeTwoPeakChrom();
+    Method method = makePeakDetectMethod();
+    window.setChromatogram(&chrom);
+    window.setMethod(&method);
+    QVERIFY(window.chromatogramView());
+    QVERIFY(window.peakTableView());
+    QVERIFY(window.methodEditorView());
+
+    // 跑管线 → sigPeaksUpdated → 峰表有数据
+    window.runMethod();
+    QCOMPARE(window.peakTableView()->tableModel()->rowCount(), 2);
+
+    // 导出 CSV 报告到临时文件 → 成功且含表头
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("report.csv"));
+    QVERIFY(window.exportCsv(outPath));
+    QFile f(outPath);
+    QVERIFY(f.open(QIODevice::ReadOnly));
+    QVERIFY(f.readAll().contains("Sample Name"));
 }
 
 QTEST_MAIN(UiTest)
