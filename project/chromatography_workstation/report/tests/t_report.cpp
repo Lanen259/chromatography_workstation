@@ -26,6 +26,7 @@ private slots:
     void emptyDataBoundary();
     void peaksWithoutQuant();
     void rfc4180Quoting();
+    void utf8EncodingForCjk();
     void generateFailsOnBadPath();
 
 private:
@@ -41,10 +42,12 @@ ReportData ReportTest::makeGoldenData()
     d.methodName = QStringLiteral("External Standard");
     d.acquiredAt = QDateTime(QDate(2026, 8, 18), QTime(10, 30, 0)); // Qt::LocalTime 默认 → ISODate 无时区后缀
     // 峰故意乱序传入：输出必须按 apexRTMs 升序重排后编号
+    // 注意：Peak 聚合初始化按字段序 {startRTMs, apexRTMs, stopRTMs, peakHeight, peakArea, ...}
     d.peaks = {
         Peak{ 186000, 204000, 222000, 31000.0, 77500.0 },   // apex 3.4 min
         Peak{ 60000,  75000,  90000,  52000.0, 104000.0 },  // apex 1.25 min
     };
+    // QuantEntry 聚合初始化按字段序 {apexRTMs, componentName, area, concentration, unit}
     d.quantEntries = {
         QuantEntry{ 75000, QStringLiteral("Benzene"), 104000.0, 12.5, QStringLiteral("mg/L") },
         QuantEntry{ 204000, QStringLiteral("Toluene"), 77500.0, 25.0, QStringLiteral("mg/L") },
@@ -183,6 +186,37 @@ void ReportTest::rfc4180Quoting()
         "Component,Apex RT (min),Area,Concentration,Unit\n"
         "\"line1\nline2\",1.000000,2.000000,0.000000,\n");
     QCOMPARE(QString::fromUtf8(readFile(outPath)), expected);
+}
+
+void ReportTest::utf8EncodingForCjk()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString outPath = dir.filePath(QStringLiteral("utf8.csv"));
+
+    // 中文 Windows 的 QTextStream 默认 codec 是 GBK：中文字段必须显式 UTF-8，否则字节不一致
+    ReportData d;
+    d.sampleName = QStringLiteral("苯标样");
+    d.methodName = QStringLiteral("外标法");
+    d.peaks = { Peak{ 60000, 75000, 90000, 52000.0, 104000.0 } };
+
+    std::unique_ptr<IReporter> reporter(ReportRegistry::instance().reporterFor(QStringLiteral("CSV")));
+    QVERIFY(reporter);
+    QVERIFY(reporter->generate(d, outPath));
+
+    const QString expected = QStringLiteral(
+        "Sample Name,苯标样\n"
+        "Method Name,外标法\n"
+        "Acquired At,\n"
+        "Number of Peaks,1\n"
+        "Number of Quantitation Entries,0\n"
+        "\n"
+        "Peak Number,Apex RT (min),Start RT (min),Stop RT (min),Height,Area\n"
+        "1,1.250000,1.000000,1.500000,52000.000000,104000.000000\n"
+        "\n"
+        "Component,Apex RT (min),Area,Concentration,Unit\n");
+    // 读原始字节 == 预期 UTF-8 字节（金样字节一致性对中文同样成立）
+    QCOMPARE(readFile(outPath), expected.toUtf8());
 }
 
 void ReportTest::generateFailsOnBadPath()

@@ -2,6 +2,7 @@
 #include "ReporterCsv.h"
 
 #include <QtCore/qfile.h>
+#include <QtCore/qtextcodec.h>
 #include <QtCore/qtextstream.h>
 
 #include <algorithm>
@@ -9,6 +10,9 @@
 namespace cdsw {
 
 namespace {
+
+constexpr int kFixedPrecision = 6;        // CSV 定点精度（金样字节规格，跨平台确定）
+constexpr double kMsPerMinute = 60000.0;  // MODULE_06 MINUTE_CORRELATION_FACTOR
 
 // RFC4180 引号：字段含逗号/双引号/换行时加双引号包裹，内部双引号翻倍
 QString csvEscape(const QString& field)
@@ -23,15 +27,15 @@ QString csvEscape(const QString& field)
     return QLatin1Char('"') + escaped + QLatin1Char('"');
 }
 
-// 保留时间毫秒 → 分钟定点 6 位（MODULE_06 MINUTE_CORRELATION_FACTOR = 60000.0）
+// 保留时间毫秒 → 分钟定点（kMsPerMinute）
 QString rtMinutes(qint64 ms)
 {
-    return QString::number(ms / 60000.0, 'f', 6);
+    return QString::number(ms / kMsPerMinute, 'f', kFixedPrecision);
 }
 
-QString fixed6(double v)
+QString fixedPrecision(double v)
 {
-    return QString::number(v, 'f', 6);
+    return QString::number(v, 'f', kFixedPrecision);
 }
 
 void writeCsvRow(QTextStream& out, const QList<QString>& cells)
@@ -57,7 +61,10 @@ bool ReporterCsv::generate(const ReportData& data, const QString& filePath)
     if (!file.open(QIODevice::WriteOnly))
         return false;
 
-    QTextStream out(&file);   // QTextStream 默认 UTF-8
+    QTextStream out(&file);
+    // Qt5 QTextStream 默认 codec = codecForLocale()（中文 Windows = GBK），
+    // 显式 UTF-8 才满足「UTF-8 跨平台字节一致」的金样承诺
+    out.setCodec(QTextCodec::codecForName("UTF-8"));
 
     // —— 表头节 ——
     writeCsvRow(out, { QStringLiteral("Sample Name"), data.sampleName });
@@ -78,7 +85,8 @@ bool ReporterCsv::generate(const ReportData& data, const QString& filePath)
     for (int i = 0; i < sorted.size(); ++i) {
         const Peak& p = sorted.at(i);
         writeCsvRow(out, { QString::number(i + 1), rtMinutes(p.apexRTMs), rtMinutes(p.startRTMs),
-                           rtMinutes(p.stopRTMs), fixed6(p.peakHeight), fixed6(p.peakArea) });
+                           rtMinutes(p.stopRTMs), fixedPrecision(p.peakHeight),
+                           fixedPrecision(p.peakArea) });
     }
     out << QLatin1Char('\n');
 
@@ -87,12 +95,12 @@ bool ReporterCsv::generate(const ReportData& data, const QString& filePath)
                        QStringLiteral("Area"), QStringLiteral("Concentration"),
                        QStringLiteral("Unit") });
     for (const QuantEntry& e : data.quantEntries) {
-        writeCsvRow(out, { e.componentName, rtMinutes(e.apexRTMs), fixed6(e.area),
-                           fixed6(e.concentration), e.unit });
+        writeCsvRow(out, { e.componentName, rtMinutes(e.apexRTMs), fixedPrecision(e.area),
+                           fixedPrecision(e.concentration), e.unit });
     }
 
     out.flush();
-    return file.error() == QFileDevice::NoError;
+    return out.status() == QTextStream::Ok && file.error() == QFileDevice::NoError;
 }
 
 } // namespace cdsw
