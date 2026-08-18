@@ -1,5 +1,21 @@
 # core_processing 线程记忆
 
+## 2026-08-18 core_processing 线程（审查整改轮，M2 最终态：待合并）
+- **提交记录（做到哪一步）**：
+  - `b3c5f1e` feat：接口 + 5 算法 + Registry + Pipeline + 金标准测试（18 槽）
+  - `259e0c1` fix：审查整改（见下）
+  - `0fb209e` doc：PROJECT.md §1/§2 状态行 + 首版记忆文件
+- **做了什么（审查整改）**：requesting-code-review 子代理审查 `b3c5f1e`（实测编译运行 + 探针实证）。结论「Ready to merge: With fixes」。
+  - 修 Critical：`PeakDetectorFirstDerivative::configure` 未校验 `windowSize`，负数触发 `diff=w/2` 负下标越界写（审查者编译探针实证段错误，exit 139）。改为钳位 [0,45] 且偶数强制奇数（OpenChrom IntSettings 校验口径）。
+  - 修 Important：`lastScan` 由 S-3 对齐为 S-4（Java `limit=size-CONSECUTIVE_SCAN_STEPS` 的 0 基映射），注释与实现一致。
+  - 文档化偏差：梯形积分与 OpenChrom `stopRT=rts[i+1]-1` 的刻意差异（离散 qint64 点无整毫秒重叠歧义，直接积满间隔）；定量近零斜率视为无曲线；peakHeight 注明未扣背景。
+  - 补 3 测试：`peakDetectorWindowSizeValidation`（负/偶数不崩溃）、`pipelineUnknownStepSkipped`（未知步跳过继续）、`quantifierDegenerateCalibration`（法方程分母 0 不崩溃）。
+- **最终验证**：全量构建 0 error；`ctest` 2/2 全绿（core_model + core_processing）；测试槽 21 个全 PASS（init/cleanup 在内共 23 PASS）；D4 无 QtWidgets、只 include core_model + QtCore。工作树干净。
+- **下一步**：等主控线程按治理规范 §3 合回 main（软件审查 ctest 全绿 + 人工代码审查放行）。
+- **卡点/依赖**：无代码卡点。协调事项沿用下方首版条目 ①②③（结果访问器增补 / 校准表参数 schema / OpenChrom 忠实行为）。⚠️ 主控注意：中途 shell 目录漂移，有一次 `cmake -S/-B build` 误指向主 checkout 的 gitignored `build/` 目录并重新配置成 MinGW 工程——无 git 影响，可删除重建；实施计划存于 worktree `build/m2-core-processing-plan.md`（gitignored，未入库）。
+
+---
+
 ## 2026-08-18 core_processing 线程（M2 完成，待合并）
 - **做了什么**：契约 §4.2 冻结接口逐字实现（`include/core_processing/interfaces.h`：IFilter/IBaselineDetector/IRawPeak/IPeakDetector/IIntegrator/IQuantifier/QuantEntry/CalibrationTable/Registry/ProcessingPipeline）+ 5 内置算法（`src/`：FilterSavitzkyGolay / BaselineLinear / PeakDetectorFirstDerivative / IntegratorTrapezoid / QuantifierCalibration）+ Registry 单例内置注册 + ProcessingPipeline 管线执行器 + 金标准测试 `tests/t_core_processing.cpp`（18 槽，全绿）。先 `git merge main` 同步（M1 已合入）。
 - **为什么这么设计**：
