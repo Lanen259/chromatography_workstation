@@ -17,7 +17,7 @@
 | M0 | 契约 + Qt 主工程骨架 + worktree 框架 | ✅ 2026-08-16 | Qt 工程 MinGW 全量构建通过 |
 | M1 | **core_model**（领域模型，含测试）合并 main | 🔨 待开工 | 自身 ctest 绿 |
 | M2 | core_processing（处理引擎） | ⏳ 待开工（阻塞于 M1） | 金标准信号测试绿 |
-| M3 | acq（采集，自研无参考） | ⏳ 待开工 | mock 测试绿 |
+| M3 | acq（采集，自研无参考）—— **首块 = 实时反控协议接收链**（[docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | ⏳ 待开工 | mock 测试绿（协议复刻示例端到端绿） |
 | M4 | io（CSV 转换器） | ⏳ 待开工 | 回环测试绿 |
 | M5 | report（报告器） | ⏳ 待开工 | 金样测试绿 |
 | M6 | ui（视图） | ⏳ 待开工 | offscreen 冒烟绿 |
@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|---|
 | core_model | dev-core_model | worktrees/core_model/ | 待开工 | M1：实现 §4.1 接口 + 测试 | MODULE_02, MODULE_04 | 无 |
 | core_processing | dev-core_processing | worktrees/core_processing/ | 待开工 | M2 | MODULE_03, MODULE_09, MODULE_10 | 等 M1 合 main |
-| acq | dev-acq | worktrees/acq/ | 待开工 | M3（**自研**） | 无（社区版无采集代码） | 等 M2 |
+| acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 等 M2 |
 | io | dev-io | worktrees/io/ | 待开工 | M4 | MODULE_01 | 等 M1 |
 | report | dev-report | worktrees/report/ | 待开工 | M5 | MODULE_06 | 等 M1 |
 | ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
@@ -57,6 +57,7 @@
 | 2026-08-16 | 依赖方向：ui → core/acq/io/report → core_processing → core_model |
 | 2026-08-16 | 并行：每模块一 worktree 分支，ctest 全绿才合并回 main |
 | 2026-08-16 | acq 无逆向参考（社区版无采集代码），需自研 |
+| 2026-08-18 | 实时反控协议（HWSendData 语义，data3 0–17）纳入 M3 首块；接收侧由我方定制 `HwRealtimeReceiver`（传输无关），规格见 docs/protocol/ |
 
 ## 5. 合并顺序（不可违反）
 
