@@ -11,3 +11,12 @@ elseif(TARGET Qt5::Widgets)
 else()
     message(WARNING "未找到 Qt Widgets：ui 模块需在装有 Qt GUI 的环境编译（契约 §8.3 可 CDSW_BUILD_UI=OFF 跳过）")
 endif()
+
+# 复用页面 .ui（cdsw_add_module 不 glob .ui，手动加入；AUTOUIC 生成 ui_*.h）
+# 后续 Task 4/5 建好文件后取消注释：
+# target_sources(ui PRIVATE src/MethodEditorView.ui src/MainWindow.ui)
+
+# offscreen 冒烟：ui 测试在无显示环境跑（QT_QPA_PLATFORM=offscreen）
+if(CDSW_BUILD_TESTS AND TARGET ui_tests)
+    set_tests_properties(ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
