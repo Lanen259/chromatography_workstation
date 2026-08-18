@@ -65,6 +65,7 @@
 | 2026-08-18 | 实时反控协议（HWSendData 语义，data3 0–17）纳入 M3 首块；接收侧由我方定制 `HwRealtimeReceiver`（传输无关），规格见 docs/protocol/ |
 | 2026-08-18 | M2(core_processing) + M3a(acq) 合回 main（全量构建 0 error + ctest 3/3 绿）；io/report/ui worktree 已同步 main，M4/M5 可并行开工 |
 | 2026-08-18 | 整夜计划：M3b(acq IPC 端点) + M4(io CSV) + M5(report CSV) 三路并行；合并一律等主控人工审查放行 |
+| 2026-08-18 | **M3b 传输方案 = QLocalServer + acq 加 QtNetwork 例外**（改 CLAUDE.md 铁律 §2 + 契约 §8 规则 5）：IPC 封装在传输适配器后，`HwRealtimeReceiver` 保持 QtCore 纯 |
 
 ## 5. 合并顺序（不可违反）
 

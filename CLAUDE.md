@@ -11,7 +11,7 @@
 
 ## 三条铁律（违反 = 返工）
 1. **模块间只通过接口说话**：只用别的模块 `include/<模块>/` 下的接口头；禁止 include 别人的 `src/`、禁止依赖别的模块内部实现。
-2. **依赖只许朝下**：`ui → core/acq/io/report → core_processing → core_model`；core 系模块只许 QtCore，只有 `ui` 能用 QtWidgets。
+2. **依赖只许朝下**：`ui → core/acq/io/report → core_processing → core_model`；core 系模块只许 QtCore，只有 `ui` 能用 QtWidgets。**唯一例外：acq 的 IPC 端点（QLocalServer 适配 CtrlPanel）可用 QtNetwork，封装在传输适配器后，`HwRealtimeReceiver` 保持 QtCore 纯**（2026-08-18 拍板）。
 3. **独立测试验证**：改完自己模块必须跑通自己的 `ctest`，全绿才允许合并回 main。
 
 ## 工作方式（按复杂度选，详见治理规范 §9）
