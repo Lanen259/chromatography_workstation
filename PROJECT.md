@@ -27,7 +27,7 @@
 
 | 模块 | 分支 | worktree 目录 | 状态 | 下一步 | 参考逆向文档 | 阻塞 |
 |---|---|---|---|---|---|---|
-| core_model | dev-core_model | worktrees/core_model/ | 待开工 | M1：实现 §4.1 接口 + 测试 | MODULE_02, MODULE_04 | 无 |
+| core_model | dev-core_model | worktrees/core_model/ | 待合并 | M1 完成（接口+实现+测试全绿），等主控软件审查 + 人工审查后合回 main | MODULE_02, MODULE_04 | 无（主控需提交 main 里未提交的 §4.1 契约变更，见记忆文件） |
 | core_processing | dev-core_processing | worktrees/core_processing/ | 待开工 | M2 | MODULE_03, MODULE_09, MODULE_10 | 等 M1 合 main |
 | acq | dev-acq | worktrees/acq/ | 待开工 | **M3a：实时反控协议接收链**（`HwRealtimeReceiver` 解码 + RingBuffer + 控制器，规格见 [docs/protocol/HWSendData_实时反控协议.md](docs/protocol/HWSendData_实时反控协议.md)） | 无（社区版无采集代码） | 等 M2 |
 | io | dev-io | worktrees/io/ | 待开工 | M4 | MODULE_01 | 等 M1 |
