@@ -27,17 +27,21 @@ public:
     void setMethod(Method* method);
     void setPeaks(const QList<Peak>& peaks);
     void runMethod();                          // 跑管线并刷新视图
+    bool importCsv(const QString& filePath);   // 经 io ConverterRegistry 导入（Phase B）
     bool exportCsv(const QString& filePath);   // 生成 CSV 报告到路径（report 模块）
+    Chromatogram* chromatogram() const;
     ChromatogramView* chromatogramView() const;
     PeakTableView* peakTableView() const;
     MethodEditorView* methodEditorView() const;
 private slots:
+    void onImportCsv();
     void onRunMethod();
     void onExportCsv();
     void onPeaksUpdated(const QList<Peak>& peaks);
 private:
     void buildReportData(ReportData& out) const;
     Ui::MainWindowUi* ui;
+    Chromatogram m_chromData;      // 导入数据的所有者（setChromatogram 仍接受外部指针）
     Chromatogram* m_chrom = nullptr;
     Method* m_method = nullptr;
     Selection m_selection;

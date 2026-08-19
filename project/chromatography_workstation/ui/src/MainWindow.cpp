@@ -1,6 +1,7 @@
 // ui/src/MainWindow.cpp —— 主窗口实现（.ui 装配 + 菜单/工具栏/管线握手）
 #include <ui/MainWindow.h>
 
+#include <io/converters.h>
 #include <ui/ChromatogramView.h>
 #include <ui/PeakTableView.h>
 #include <ui/MethodEditorView.h>
@@ -37,13 +38,13 @@ MainWindow::MainWindow(QWidget* parent)
     ui->toolbar->addAction(ui->actionRunMethod);
     ui->toolbar->addAction(ui->actionExportCsv);
 
+    connect(ui->actionImportCsv, &QAction::triggered, this, &MainWindow::onImportCsv);
     connect(ui->actionRunMethod, &QAction::triggered, this, &MainWindow::onRunMethod);
     connect(ui->actionExportCsv, &QAction::triggered, this, &MainWindow::onExportCsv);
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
     connect(ui->actionAbout, &QAction::triggered, this, [this] {
         QMessageBox::about(this, tr("关于"), tr("Qt/C++ 色谱工作站（CDS）"));
     });
-    // actionImportCsv 在 M4(io) 合入后接线（Phase B）
 
     connect(&m_controller, &SelectionController::sigPeaksUpdated,
             this, &MainWindow::onPeaksUpdated);
@@ -99,6 +100,32 @@ void MainWindow::onRunMethod()
     statusBar()->showMessage(tr("管线已执行"), 3000);
 }
 
+bool MainWindow::importCsv(const QString& filePath)
+{
+    std::unique_ptr<IChromatogramImporter> importer(
+        ConverterRegistry::instance().importerFor(filePath));
+    if (!importer)
+        return false;
+    m_chromData = Chromatogram();
+    const ImportResult result = importer->import(filePath, m_chromData);
+    if (!result.ok) {
+        statusBar()->showMessage(tr("导入失败：%1").arg(result.errorMessage), 5000);
+        return false;
+    }
+    setChromatogram(&m_chromData);
+    return true;
+}
+
+void MainWindow::onImportCsv()
+{
+    const QString path = QFileDialog::getOpenFileName(
+        this, tr("导入 CSV 数据"), QString(), tr("CSV (*.csv)"));
+    if (path.isEmpty())
+        return;
+    if (importCsv(path))
+        statusBar()->showMessage(tr("数据已导入：%1").arg(path), 3000);
+}
+
 bool MainWindow::exportCsv(const QString& filePath)
 {
     std::unique_ptr<IReporter> reporter(
@@ -131,6 +158,7 @@ void MainWindow::onExportCsv()
         QMessageBox::warning(this, tr("导出失败"), tr("无法写入文件：%1").arg(path));
 }
 
+Chromatogram* MainWindow::chromatogram() const { return m_chrom; }
 ChromatogramView* MainWindow::chromatogramView() const { return ui->chromatogramView; }
 PeakTableView* MainWindow::peakTableView() const { return ui->peakTableView; }
 MethodEditorView* MainWindow::methodEditorView() const { return ui->methodEditorView; }

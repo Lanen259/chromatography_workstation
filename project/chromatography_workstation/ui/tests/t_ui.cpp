@@ -81,6 +81,7 @@ private slots:
     void chromatogramViewRendersSelectsAndZooms();
     void methodEditorEditsSteps();
     void mainWindowAssemblesAndRuns();
+    void mainWindowImportsCsv();
 };
 
 void UiTest::selectionControllerRunsPipeline()
@@ -251,6 +252,27 @@ void UiTest::mainWindowAssemblesAndRuns()
     QFile f(outPath);
     QVERIFY(f.open(QIODevice::ReadOnly));
     QVERIFY(f.readAll().contains("Sample Name"));
+}
+
+void UiTest::mainWindowImportsCsv()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("imported.csv"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("retentionTimeMs,intensity\n0,10.000000\n500,50.000000\n1000,20.000000\n");
+    f.close();
+
+    MainWindow window;
+    QVERIFY(window.importCsv(path));
+    QVERIFY(window.chromatogram());
+    QCOMPARE(window.chromatogram()->signalPoints().size(), 3);
+    QCOMPARE(window.chromatogram()->name(), QStringLiteral("imported"));
+
+    // 失败路径：不存在 / 未知扩展名
+    QVERIFY(!window.importCsv(dir.filePath(QStringLiteral("nope.csv"))));
+    QVERIFY(!window.importCsv(QStringLiteral("x.zzz")));
 }
 
 QTEST_MAIN(UiTest)
