@@ -2,6 +2,8 @@
 #include <QtTest/QtTest>
 #include <QSignalSpy>
 
+#include <QtGui/qevent.h>
+
 #include <cmath>
 
 #include <core_model/Chromatogram.h>
@@ -81,6 +83,7 @@ private slots:
     void peakTableModelShowsPeaks();
     void peakTableModelEmpty();
     void chromatogramViewRendersSelectsAndZooms();
+    void chromatogramViewAxisAndOverview();
     void methodEditorEditsSteps();
     void mainWindowAssemblesAndRuns();
     void mainWindowImportsCsv();
@@ -174,9 +177,9 @@ void UiTest::chromatogramViewRendersSelectsAndZooms()
     QCOMPARE(view.visibleStopMs(), qint64(2000));
     view.repaint();                  // paintEvent 不崩
 
-    // 左键拖拽出选区 → sigSelectionRangeChanged（映射回毫秒）
+    // 左键拖拽出选区 → sigSelectionRangeChanged（映射回毫秒；在绘图区内拖）
     QSignalSpy spy(&view, &ChromatogramView::sigSelectionRangeChanged);
-    QTest::mousePress(&view, Qt::LeftButton, Qt::NoModifier, QPoint(50, 50));
+    QTest::mousePress(&view, Qt::LeftButton, Qt::NoModifier, QPoint(80, 50));
     QTest::mouseMove(&view, QPoint(350, 50), 20);
     QTest::mouseRelease(&view, Qt::LeftButton, Qt::NoModifier, QPoint(350, 50));
     QCOMPARE(spy.count(), 1);
@@ -196,6 +199,49 @@ void UiTest::chromatogramViewRendersSelectsAndZooms()
     view.repaint();
     QCOMPARE(view.selectionStartMs(), qint64(300));
     QCOMPARE(view.selectionStopMs(), qint64(800));
+}
+
+void UiTest::chromatogramViewAxisAndOverview()
+{
+    ChromatogramView view;
+    Chromatogram chrom = makeTwoPeakChrom();
+    view.resize(400, 220);
+    view.show();
+    view.setChromatogram(&chrom);
+
+    // mapToData：绘图区像素 → 数据坐标；轴区外 NaN
+    const QPointF data = view.mapToData(QPoint(200, 100));
+    QVERIFY(!std::isnan(data.x()));
+    QVERIFY(data.x() > 0 && data.x() < 2000);
+    QVERIFY(data.y() >= 0);
+    QVERIFY(std::isnan(view.mapToData(QPoint(2, 100)).x()));
+
+    // 缩放后双击复位全谱
+    view.zoomAt(qint64(1000), 3.0);
+    QVERIFY(view.visibleStopMs() - view.visibleStartMs() < 2000);
+    QTest::mouseDClick(&view, Qt::LeftButton, Qt::NoModifier, QPoint(200, 100));
+    QCOMPARE(view.visibleStartMs(), qint64(0));
+    QCOMPARE(view.visibleStopMs(), qint64(2000));
+
+    // 概览条拖动移动视窗（先缩小可见窗再拖）
+    view.zoomAt(qint64(1500), 4.0);
+    const qint64 span = view.visibleStopMs() - view.visibleStartMs();
+    QVERIFY(span < 1000);
+    const qint64 beforeStart = view.visibleStartMs();
+    // 概览条区域：plot.bottom=160，strip y≈168..192；x=300 → 拖到 x=150
+    // QTest::mouseMove 在 offscreen 下不投递 mouseMoveEvent，改用 sendEvent 直投
+    {
+        QMouseEvent press(QEvent::MouseButtonPress, QPoint(300, 175), Qt::LeftButton,
+                          Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&view, &press);
+        QMouseEvent move(QEvent::MouseMove, QPoint(150, 175), Qt::NoButton,
+                         Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&view, &move);
+        QMouseEvent release(QEvent::MouseButtonRelease, QPoint(150, 175), Qt::LeftButton,
+                            Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(&view, &release);
+    }
+    QVERIFY(view.visibleStartMs() < beforeStart);
 }
 
 void UiTest::methodEditorEditsSteps()
