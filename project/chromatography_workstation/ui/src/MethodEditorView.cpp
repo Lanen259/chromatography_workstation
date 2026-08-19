@@ -33,6 +33,7 @@ MethodEditorView::MethodEditorView(QWidget* parent)
         { QStringLiteral("参数"), QStringLiteral("值") });
 
     connect(ui->btnAdd, &QPushButton::clicked, this, &MethodEditorView::onAddStep);
+    connect(ui->btnCopy, &QPushButton::clicked, this, &MethodEditorView::onCopyStep);
     connect(ui->btnRemove, &QPushButton::clicked, this, &MethodEditorView::onRemoveStep);
     connect(ui->btnUp, &QPushButton::clicked, this, &MethodEditorView::onMoveUp);
     connect(ui->btnDown, &QPushButton::clicked, this, &MethodEditorView::onMoveDown);
@@ -73,6 +74,19 @@ void MethodEditorView::onAddStep()
     m_method->steps.append(ProcessingStep{ id, QVariantMap() });
     ui->listSteps->addItem(id);
     ui->listSteps->setCurrentRow(ui->listSteps->count() - 1);   // 新步骤立即选中，参数表可见
+    emit sigMethodChanged();
+}
+
+void MethodEditorView::onCopyStep()
+{
+    if (!m_method)
+        return;
+    const int row = ui->listSteps->currentRow();
+    if (row < 0 || row >= m_method->steps.size())
+        return;
+    m_method->steps.insert(row + 1, m_method->steps.at(row));   // 深拷贝步骤（含参数）
+    ui->listSteps->insertItem(row + 1, ui->listSteps->item(row)->text());
+    ui->listSteps->setCurrentRow(row + 1);
     emit sigMethodChanged();
 }
 

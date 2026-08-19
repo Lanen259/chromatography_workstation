@@ -30,6 +30,20 @@
    <item>
     <layout class="QHBoxLayout" name="stepButtons">
      <item>
+      <widget class="QPushButton" name="btnCopy">
+       <property name="text">
+        <string>复制</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnRemove">
+       <property name="text">
+        <string>删除</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="btnUp">
        <property name="text">
         <string>上移</string>
@@ -40,13 +54,6 @@
       <widget class="QPushButton" name="btnDown">
        <property name="text">
         <string>下移</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnRemove">
-       <property name="text">
-        <string>删除</string>
        </property>
       </widget>
      </item>

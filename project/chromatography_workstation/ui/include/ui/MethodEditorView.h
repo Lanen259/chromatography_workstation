@@ -21,6 +21,7 @@ signals:
     void sigMethodChanged();
 private slots:
     void onAddStep();
+    void onCopyStep();
     void onRemoveStep();
     void onMoveUp();
     void onMoveDown();

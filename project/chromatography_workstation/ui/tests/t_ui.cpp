@@ -277,17 +277,26 @@ void UiTest::methodEditorEditsSteps()
     QCOMPARE(list->count(), 3);
     QCOMPARE(spy.count(), 1);
 
-    // MoveUp：最后一项上移
+    // Copy：复制选中步骤（含参数）到其后
+    auto* copyBtn = view.findChild<QPushButton*>(QStringLiteral("btnCopy"));
+    QVERIFY(copyBtn);
     list->setCurrentRow(2);
-    QTest::mouseClick(upBtn, Qt::LeftButton);
-    QCOMPARE(method.steps.at(1).id, QStringLiteral("sg_smooth"));
+    QTest::mouseClick(copyBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.size(), 4);
+    QCOMPARE(method.steps.at(3).id, QStringLiteral("sg_smooth"));
     QCOMPARE(spy.count(), 2);
 
-    // Remove：删除当前项
-    list->setCurrentRow(1);
-    QTest::mouseClick(removeBtn, Qt::LeftButton);
-    QCOMPARE(method.steps.size(), 2);
+    // MoveUp：最后一项上移
+    list->setCurrentRow(3);
+    QTest::mouseClick(upBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.at(2).id, QStringLiteral("sg_smooth"));
     QCOMPARE(spy.count(), 3);
+
+    // Remove：删除当前项
+    list->setCurrentRow(2);
+    QTest::mouseClick(removeBtn, Qt::LeftButton);
+    QCOMPARE(method.steps.size(), 3);
+    QCOMPARE(spy.count(), 4);
 
     // 参数编辑：选中步骤 0，写参数表 → 写回 method
     list->setCurrentRow(0);
