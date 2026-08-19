@@ -1,5 +1,19 @@
 # ui 线程记忆
 
+## 2026-08-18 CDS 1.0 UI 升级（P1–P6，feat/ui-industrial）
+- **做了什么**：把可运行的 MainWindow 骨架升级为工业级现代 UI。P1 现代暗色主题（theme.qss 全控件 + ThemeColors 色板 + applyTheme）；P2 色谱图专业版（轴/网格/刻度/抗锯齿+渐变填充/峰标注 P#+RT/十字线提示/中键平移/双击复位/概览条拖动/空态）；P3 可停靠工作区（QDockWidget 峰表/方法编辑/信息/日志 + View 菜单 toggle + QSettings 几何与停靠持久化）；P4 方法编辑器 v2（Copy 复制步骤 + 方法 JSON 存读）；P5 InfoView/LogView 停靠 + 状态栏永久标签 + sigLogMessage 事件日志；P6 main.cpp 产品化（High-DPI、org/app/version、restoreWorkspace/saveWorkspace、loadDemoData 启动演示数据、--e2e 保持）。
+- **关键经验（避免返工）**：
+  - **AUTORCC + 静态库**：qrc 对象会被链接器丢弃，资源加载失败。必须 `extern int qInitResources_ui();`（全局声明）+ `::qInitResources_ui()` 显式调用（在 cdsw 命名空间内 `Q_INIT_RESOURCE(ui)` 会解析成 cdsw::qInitResources_ui 找不到符号）。
+  - **Qt5 图标/渐变 include**：QApplication 在 `QtWidgets/qapplication.h`（不在 QtGui）；QLinearGradient 在 `QtGui/qbrush.h`；`QApplication::setStyleSheet/styleSheet` 是**实例**成员（用 `qApp->`），不是静态。
+  - **QTest::mouseMove 在 offscreen 不投递 mouseMoveEvent**（Qt5 offscreen 平台怪癖，QtTest 已知）：拖拽测试改用 `QApplication::sendEvent(&widget, QMouseEvent(MouseMove,...))` 直投。
+  - **.ui 生成 Ui::* 在全局命名空间**（前向声明须在 cdsw 外）；promote 的 cdsw 类在 .ui 用完全限定名 `cdsw::Xxx`（两次踩坑，见 M6 记忆）。
+  - **QSettings 实例**：`QSettings(org, app)` 构造即可读写，`appSettings()` 返回局部实例（拷贝），测试不受真实设置影响。
+  - **图表坐标**：plotRect 扣轴边距（左 64/右 14/上 12/下 26 + 概览 34）；msToX/xToMs/intensityToY/yToIntensity 全部以 plotRect 为准，xToMs 夹到 plot 范围防轴区误拖。
+- **为什么这么设计**：对标 MODULE_07（Dock ≈ e4 perspective、方法树 ≈ MethodTreeViewer、Info/Log ≈ 视图部分）；开闭原则（新增只加类/资源，不动冻结接口）；core 系模块零改动（红线）。
+- **验证**：ui_tests 16 用例 offscreen 全绿；全量构建 0 error（待 P7 合回后主 checkout 复跑）；`--e2e` exit 0。
+- **下一步**：P7 独立审查（Critical 全修）→ 合回 main → 全量验证 → push GitHub。
+- **卡点/依赖**：无。协调事项见 `docs/uncertainties-2026-08-18-overnight.md`（显示名仅 IFilter 有、QTest mouseMove 怪癖、未做插件系统/采集 UI）。
+
 ## 2026-08-18 ui 线程（M6 Phase A + B 完成，待合并）
 - **做了什么**：契约 §4.6 界面层全部落地。`include/ui/`：`SelectionController`（契约冻结签名 + 增补 setChromatogram/setMethod）、`PeakTableModel`（QAbstractTableModel 适配 QList<Peak>）、`PeakTableView`（QTableView 子类）、`ChromatogramView`（自绘曲线 + 缩放/平移/选区）、`MethodEditorView`（方法步骤增删改）、`MainWindow`（菜单/工具栏/分栏装配 + io 导入 + report 导出）。`.ui` 文件：`MainWindow.ui`、`MethodEditorView.ui`。测试 `tests/t_ui.cpp` 7 槽 offscreen 全绿。
 - **为什么这么设计**：

@@ -49,3 +49,10 @@
 - **查证过程**：治理规范合回门禁需「exe 可运行 + 端到端绿」；GUI exe 交互难以自动化。
 - **已采取取舍**：main.cpp 装配 ui MainWindow（持有 io 导入 + core_processing 管线 + report 导出 + 曲线显示）；移除 Qt Creator 模板 widget.*；加 `--e2e` 无头自检 flag：写样本 CSV → importCsv(io) → setMethod/runMethod(core_processing) → exportCsv(report) → 断言峰表 2 行 + 报告含峰表头 → exit 0。`QT_QPA_PLATFORM=offscreen ./chromatography_workstation.exe --e2e` 验证「exe 可运行 + 端到端绿」。
 - **待用户确认**：无。
+
+## 2026-08-18 / CDS 1.0 UI 升级（P1–P6 决策）
+- **问题**：工业级/可上线/OpenChrom 级别 UI 升级的范围与取舍。
+- **查证过程**：MODULE_07（Dock/方法树/Info/Log/事件总线）、编码风格 §8、契约 §4.6 冻结面。
+- **已采取取舍**：① 只动 ui 模块 + main.cpp（core 系一行未动）；② 现代暗色主题 theme.qss + ChartPalette（与 QSS 同源色板）；③ 图表专业版（轴/网格/峰标/十字线/概览/平移/双击复位）；④ QDockWidget 可停靠工作区 + View 菜单 + QSettings 布局持久化；⑤ 方法 JSON 存读（顶层 name 字段承载方法名，Method 结构本身无名称字段——core_model 不改）；⑥ InfoView/LogView 停靠面板 + 状态栏；⑦ 演示数据启动加载 + High-DPI + `--e2e` 自检。
+- **待用户确认**：① 方法步骤「显示名」仅 IFilter 接口有（契约 §4.2 其他接口只有 id），列表暂显示 id，未统一取显示名——若需要需 core_processing 接口加 displayName（冻结面变更，需主控拍板）；② QTest::mouseMove 在 offscreen 下不投递 mouseMoveEvent（Qt5 offscreen 平台已知怪癖），测试改用 QApplication::sendEvent 直投，非产品代码问题；③ 未做插件系统/真实采集 UI/报告列编辑（OpenChrom 完整功能面远超本次，属后续里程碑）。
+
