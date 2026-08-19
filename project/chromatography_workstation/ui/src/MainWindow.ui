@@ -6,26 +6,29 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>600</height>
+    <width>1200</width>
+    <height>720</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>色谱工作站</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="centralLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="cdsw::ChromatogramView" name="chromatogramView" native="true"/>
-    </item>
-    <item>
-     <widget class="QSplitter" name="rightSplitter">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <widget class="cdsw::PeakTableView" name="peakTableView"/>
-      <widget class="cdsw::MethodEditorView" name="methodEditorView"/>
-     </widget>
     </item>
    </layout>
   </widget>
@@ -34,13 +37,18 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1000</width>
+     <width>1200</width>
      <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>文件</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>视图</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -59,10 +67,26 @@
    <property name="text">
     <string>导入 CSV...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
   </action>
   <action name="actionRunMethod">
    <property name="text">
     <string>运行方法</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="actionOpenMethod">
+   <property name="text">
+    <string>打开方法...</string>
+   </property>
+  </action>
+  <action name="actionSaveMethod">
+   <property name="text">
+    <string>保存方法...</string>
    </property>
   </action>
   <action name="actionExportCsv">
@@ -73,6 +97,9 @@
   <action name="actionQuit">
    <property name="text">
     <string>退出</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -86,16 +113,6 @@
    <class>cdsw::ChromatogramView</class>
    <extends>QWidget</extends>
    <header>ui/ChromatogramView.h</header>
-  </customwidget>
-  <customwidget>
-   <class>cdsw::PeakTableView</class>
-   <extends>QTableView</extends>
-   <header>ui/PeakTableView.h</header>
-  </customwidget>
-  <customwidget>
-   <class>cdsw::MethodEditorView</class>
-   <extends>QWidget</extends>
-   <header>ui/MethodEditorView.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

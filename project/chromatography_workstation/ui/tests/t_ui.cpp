@@ -3,6 +3,8 @@
 #include <QSignalSpy>
 
 #include <QtGui/qevent.h>
+#include <QtWidgets/qaction.h>
+#include <QtWidgets/qdockwidget.h>
 
 #include <cmath>
 
@@ -87,6 +89,8 @@ private slots:
     void methodEditorEditsSteps();
     void mainWindowAssemblesAndRuns();
     void mainWindowImportsCsv();
+    void mainWindowDocksAndToggle();
+    void methodJsonRoundTrip();
     void themeAppliesAndProvidesPalette();
 };
 
@@ -341,6 +345,49 @@ void UiTest::mainWindowImportsCsv()
     // 失败路径：不存在 / 未知扩展名
     QVERIFY(!window.importCsv(dir.filePath(QStringLiteral("nope.csv"))));
     QVERIFY(!window.importCsv(QStringLiteral("x.zzz")));
+}
+
+void UiTest::mainWindowDocksAndToggle()
+{
+    MainWindow window;
+    window.show();
+    // 峰表/方法编辑停靠面板存在且可经 toggle 隐藏/显示
+    auto* peakDock = window.findChild<QDockWidget*>(QStringLiteral("peakDock"));
+    auto* methodDock = window.findChild<QDockWidget*>(QStringLiteral("methodDock"));
+    QVERIFY(peakDock && methodDock);
+    QVERIFY(peakDock->toggleViewAction()->isChecked());
+    peakDock->hide();
+    QVERIFY(!peakDock->toggleViewAction()->isChecked());
+    peakDock->show();
+    QVERIFY(peakDock->toggleViewAction()->isChecked());
+}
+
+void UiTest::methodJsonRoundTrip()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    MainWindow window;
+
+    // 含参数的方法 → 保存 → 清空重开 → 往返一致
+    const QString path = dir.filePath(QStringLiteral("method.json"));
+    Method method;
+    method.steps.append(ProcessingStep{ QStringLiteral("sg_smooth"),
+        QVariantMap{ { QStringLiteral("windowSize"), 5 } } });
+    method.steps.append(ProcessingStep{ QStringLiteral("first_derivative_peak_detector"),
+        QVariantMap{ { QStringLiteral("threshold"), QStringLiteral("MEDIUM") },
+                     { QStringLiteral("windowSize"), 0 } } });
+    window.setMethod(&method);
+    QVERIFY(window.saveMethod(path));
+
+    QVERIFY(window.openMethod(path));
+    QVERIFY(window.methodEditorView()->method());
+    const Method& m2 = *window.methodEditorView()->method();
+    QCOMPARE(m2.steps.size(), 2);
+    QCOMPARE(m2.steps.at(0).id, QStringLiteral("sg_smooth"));
+    QCOMPARE(m2.steps.at(0).parameters.value(QStringLiteral("windowSize")).toInt(), 5);
+    QCOMPARE(m2.steps.at(1).id, QStringLiteral("first_derivative_peak_detector"));
+    QCOMPARE(m2.steps.at(1).parameters.value(QStringLiteral("threshold")).toString(),
+             QStringLiteral("MEDIUM"));
 }
 
 void UiTest::themeAppliesAndProvidesPalette()
