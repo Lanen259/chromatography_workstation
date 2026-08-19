@@ -55,6 +55,7 @@
 | 6b2065e | M4：io 转换器（§4.4 接口 + ImporterCsv/ExporterCsv + ConverterRegistry + 回环测试 + UTF-8/BOM 修复）合回 main |
 | 0eefc99 | M6：ui 界面层（§4.6 视图 + SelectionController + MainWindow .ui 装配 + 审查改进）合回 main |
 | c018ae2 | M7：Qt 主工程集成（main.cpp 装配 MainWindow + --e2e 无头自检 + 移除 widget.*）|
+| 4a35a46 | CDS 1.0：工业级 UI 升级（feat/ui-industrial 合回）——现代暗色主题 + 色谱图专业版 + 可停靠工作区 + 方法 JSON 存读 + Info/Log 视图 + 演示数据/High-DPI/布局持久化 |
 
 ## 4. 决策日志
 
@@ -72,6 +73,7 @@
 | 2026-08-18 | **M3b 传输方案 = QLocalServer + acq 加 QtNetwork 例外**（改 CLAUDE.md 铁律 §2 + 契约 §8 规则 5）：IPC 封装在传输适配器后，`HwRealtimeReceiver` 保持 QtCore 纯 |
 | 2026-08-18 | 整夜自主执行（用户预授权）：M5(report) → M4(io 兜底，dev-io 空闲) → M6(ui) → M7(集成) 全部完成合 main：全量构建 0 error + 全套 ctest 6/6 绿 + exe 可运行 + `--e2e` 端到端绿 |
 | 2026-08-18 | **Qt5 QTextStream 默认 codec = codecForLocale()（中文 Windows=GBK）**：io/report 导入导出显式 `setCodec(UTF-8)`，中文金样用例锁死字节一致性 |
+| 2026-08-18 | **CDS 1.0 工业级 UI 升级（feat/ui-industrial）**：现代暗色主题 + 色谱图专业版（轴/网格/峰标/十字线/概览）+ 可停靠工作区（QDockWidget + 布局持久化）+ 方法 JSON 存读 + Info/Log 视图 + 演示数据/High-DPI；只动 ui + main.cpp（core 系零改动）；独立审查无 Critical |
 
 ## 5. 合并顺序（不可违反）
 
