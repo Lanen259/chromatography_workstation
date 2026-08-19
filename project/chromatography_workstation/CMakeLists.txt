@@ -37,12 +37,9 @@ add_subdirectory(io)
 add_subdirectory(report)
 add_subdirectory(ui)
 
-# 主程序壳（原 app 模块位置，契约 §4.7；M7 集成时把模块装配到窗口）
+# 主程序（M7 集成：ui MainWindow 装配 6 模块；--e2e 无头自检全链路）
 add_executable(chromatography_workstation
     main.cpp
-    widget.cpp
-    widget.h
-    widget.ui
 )
 target_link_libraries(chromatography_workstation PRIVATE
     Qt5::Widgets
