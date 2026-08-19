@@ -2,10 +2,12 @@
 //
 // 自研 CSV 格式（与 ImporterCsv 严格互逆，格式锁定进 t_io.cpp 字节级测试）：
 //   首行表头 retentionTimeMs,intensity；其后每行一个采样点「整数毫秒,6 位定点强度」。
-//   行尾 LF（不带 QIODevice::Text 打开，跨平台字节一致）；UTF-8（QTextStream 默认）。
+//   行尾 LF（不带 QIODevice::Text 打开，跨平台字节一致）；显式 UTF-8（Qt5 QTextStream
+//   默认 codec=codecForLocale()，中文 Windows=GBK，需覆盖为 UTF-8 才满足字节承诺）。
 #include "ExporterCsv.h"
 
 #include <QtCore/qfile.h>
+#include <QtCore/qtextcodec.h>
 #include <QtCore/qtextstream.h>
 
 namespace cdsw {
@@ -22,7 +24,8 @@ bool ExporterCsv::export_(const QString& filePath, const Chromatogram& chrom)
     if (!file.open(QIODevice::WriteOnly))
         return false;
 
-    QTextStream out(&file);   // QTextStream 默认 UTF-8
+    QTextStream out(&file);
+    out.setCodec(QTextCodec::codecForName("UTF-8"));   // Qt5 默认 locale codec，显式 UTF-8 保字节一致
 
     out << "retentionTimeMs,intensity\n";
     const QVector<Signal>& points = chrom.signalPoints();

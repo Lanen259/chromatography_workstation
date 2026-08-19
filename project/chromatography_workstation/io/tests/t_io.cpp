@@ -27,6 +27,8 @@ private slots:
     void exportFormatBytes();
     void registry();
     void missingFileImport();
+    void utf8BomImport();
+    void failureDoesNotPolluteOut();
 
 private:
     static Chromatogram makeFixedChromatogram();
@@ -287,6 +289,64 @@ void IoTest::missingFileImport()
     const ImportResult result = importer->import(path, chrom);
     QCOMPARE(result.ok, false);
     QVERIFY(!result.errorMessage.isEmpty());
+}
+
+// —— UTF-8 源 + BOM：中文注释行 + 表头 + 数据 → 正常解析（显式 UTF-8 解码，中文 Windows 非 GBK）——
+void IoTest::utf8BomImport()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("utf8.csv"));
+    const QByteArray content = QString(QChar(0xFEFF)).toUtf8()          // UTF-8 BOM
+        + QStringLiteral("# 苯标样 100ppm\n").toUtf8()                   // 中文注释
+        + QStringLiteral("retentionTimeMs,intensity\n").toUtf8()
+        + QStringLiteral("1000,12.500000\n").toUtf8()
+        + QStringLiteral("2000,3.000000\n").toUtf8();
+    QVERIFY(writeFile(path, content));
+
+    std::unique_ptr<IChromatogramImporter> importer(
+        ConverterRegistry::instance().importerFor(path));
+    QVERIFY(importer);
+
+    Chromatogram out;
+    const ImportResult result = importer->import(path, out);
+    QVERIFY2(result.ok, qPrintable(result.errorMessage));
+    QCOMPARE(out.signalPoints().size(), 2);
+    QCOMPARE(out.signalPoints().at(0).retentionTimeMs, qint64(1000));
+    QCOMPARE(out.signalPoints().at(1).retentionTimeMs, qint64(2000));
+    QCOMPARE(out.signalPoints().at(1).intensity, 3.0);
+}
+
+// —— 规格「失败不污染 out」：坏行 / 缺失文件导入后 out 保持原值 ——
+void IoTest::failureDoesNotPolluteOut()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString badPath = dir.filePath(QStringLiteral("bad.csv"));
+    QVERIFY(writeFile(badPath, QStringLiteral("1000,1.0\nonlyonecolumn\n").toUtf8()));
+    const QString missingPath = dir.filePath(QStringLiteral("nope.csv"));
+
+    Chromatogram out = makeFixedChromatogram();
+    const QVector<Signal> beforePoints = out.signalPoints();
+    const qint64 beforeDelay = out.scanDelayMs();
+    const qint64 beforeInterval = out.scanIntervalMs();
+    const QString beforeName = out.name();
+
+    std::unique_ptr<IChromatogramImporter> importer(
+        ConverterRegistry::instance().importerFor(badPath));
+    QVERIFY(importer);
+    QVERIFY(!importer->import(badPath, out).ok);
+    QVERIFY(!importer->import(missingPath, out).ok);
+
+    // Signal 无 operator==，逐点比对（失败后 out 不被污染）
+    QCOMPARE(out.signalPoints().size(), beforePoints.size());
+    for (int i = 0; i < beforePoints.size(); ++i) {
+        QCOMPARE(out.signalPoints().at(i).retentionTimeMs, beforePoints.at(i).retentionTimeMs);
+        QCOMPARE(out.signalPoints().at(i).intensity, beforePoints.at(i).intensity);
+    }
+    QCOMPARE(out.scanDelayMs(), beforeDelay);
+    QCOMPARE(out.scanIntervalMs(), beforeInterval);
+    QCOMPARE(out.name(), beforeName);
 }
 
 QTEST_APPLESS_MAIN(IoTest)
