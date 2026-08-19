@@ -7,6 +7,7 @@
 #include <report/reporters.h>
 #include <ui/SelectionController.h>
 #include <QtWidgets/qdockwidget.h>
+#include <QtWidgets/qlabel.h>
 #include <QtWidgets/qmainwindow.h>
 
 namespace Ui { class MainWindowUi; }
@@ -16,6 +17,8 @@ namespace cdsw {
 class ChromatogramView;
 class PeakTableView;
 class MethodEditorView;
+class InfoView;
+class LogView;
 
 // 装配：File(导入/打开·保存方法/运行/导出报告/退出) + 视图(停靠面板开关) + 帮助(关于) + 工具栏。
 // 中央 = 色谱图；峰表/方法编辑为 QDockWidget（Info/Log 见后续）。持有 Chromatogram/Method
@@ -37,6 +40,8 @@ public:
     ChromatogramView* chromatogramView() const;
     PeakTableView* peakTableView() const;
     MethodEditorView* methodEditorView() const;
+    InfoView* infoView() const;
+    LogView* logView() const;
     void restoreWorkspace();                   // QSettings：窗口几何 + 停靠布局
     void saveWorkspace() const;
 signals:
@@ -62,8 +67,13 @@ private:
     SelectionController m_controller;
     PeakTableView* m_peakView = nullptr;
     MethodEditorView* m_methodEditor = nullptr;
+    InfoView* m_infoView = nullptr;
+    LogView* m_logView = nullptr;
     QDockWidget* m_peakDock = nullptr;
     QDockWidget* m_methodDock = nullptr;
+    QDockWidget* m_infoDock = nullptr;
+    QDockWidget* m_logDock = nullptr;
+    QLabel* m_statusInfo = nullptr;    // 状态栏永久信息（峰数/RT 范围）
 };
 
 } // namespace cdsw

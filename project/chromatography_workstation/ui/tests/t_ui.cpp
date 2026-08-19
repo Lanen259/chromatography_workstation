@@ -18,6 +18,8 @@
 #include <ui/ChromatogramView.h>
 #include <ui/MethodEditorView.h>
 #include <ui/MainWindow.h>
+#include <ui/InfoView.h>
+#include <ui/LogView.h>
 #include <ui/Theme.h>
 
 #include <QComboBox>
@@ -91,6 +93,8 @@ private slots:
     void mainWindowImportsCsv();
     void mainWindowDocksAndToggle();
     void methodJsonRoundTrip();
+    void infoViewShowsMetadata();
+    void logViewReceivesMessages();
     void themeAppliesAndProvidesPalette();
 };
 
@@ -397,6 +401,39 @@ void UiTest::methodJsonRoundTrip()
     QCOMPARE(m2.steps.at(1).id, QStringLiteral("first_derivative_peak_detector"));
     QCOMPARE(m2.steps.at(1).parameters.value(QStringLiteral("threshold")).toString(),
              QStringLiteral("MEDIUM"));
+}
+
+void UiTest::infoViewShowsMetadata()
+{
+    MainWindow window;
+    window.show();
+    Chromatogram chrom = makeTwoPeakChrom();
+    window.setChromatogram(&chrom);
+    auto* table = window.infoView()->findChild<QTableWidget*>(QStringLiteral("table"));
+    QVERIFY(table);
+    QCOMPARE(table->item(1, 1)->text(), QStringLiteral("201"));       // 采样点数
+    QCOMPARE(table->item(0, 1)->text(), chrom.name());                 // 名称
+
+    Method method = makePeakDetectMethod();
+    window.setMethod(&method);
+    window.runMethod();
+    QCOMPARE(table->item(8, 1)->text(), QStringLiteral("2"));          // 峰数
+}
+
+void UiTest::logViewReceivesMessages()
+{
+    MainWindow window;
+    window.show();
+    window.logView()->appendMessage(QStringLiteral("hello"));
+    QVERIFY(window.logView()->toPlainText().contains(QStringLiteral("hello")));
+
+    // 管线执行经 sigLogMessage 写日志
+    Chromatogram chrom = makeTwoPeakChrom();
+    Method method = makePeakDetectMethod();
+    window.setChromatogram(&chrom);
+    window.setMethod(&method);
+    window.runMethod();
+    QVERIFY(window.logView()->toPlainText().contains(QStringLiteral("管线已执行")));
 }
 
 void UiTest::themeAppliesAndProvidesPalette()

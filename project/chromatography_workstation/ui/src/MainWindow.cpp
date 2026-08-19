@@ -5,6 +5,8 @@
 #include <ui/ChromatogramView.h>
 #include <ui/PeakTableView.h>
 #include <ui/MethodEditorView.h>
+#include <ui/InfoView.h>
+#include <ui/LogView.h>
 #include <ui/Theme.h>
 
 #include <QtCore/qdatetime.h>
@@ -71,6 +73,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     createDocks();
 
+    m_statusInfo = new QLabel(this);
+    m_statusInfo->setText(tr("就绪"));
+    statusBar()->addPermanentWidget(m_statusInfo);
+
+    connect(this, &MainWindow::sigLogMessage, m_logView, &LogView::appendMessage);
     connect(&m_controller, &SelectionController::sigPeaksUpdated,
             this, &MainWindow::onPeaksUpdated);
 
@@ -102,6 +109,20 @@ void MainWindow::createDocks()
     m_methodDock->setWidget(m_methodEditor);
     addDockWidget(Qt::RightDockWidgetArea, m_methodDock);
     ui->menuView->addAction(m_methodDock->toggleViewAction());
+
+    m_infoView = new InfoView(this);
+    m_infoDock = new QDockWidget(tr("信息"), this);
+    m_infoDock->setObjectName(QStringLiteral("infoDock"));
+    m_infoDock->setWidget(m_infoView);
+    addDockWidget(Qt::RightDockWidgetArea, m_infoDock);
+    ui->menuView->addAction(m_infoDock->toggleViewAction());
+
+    m_logView = new LogView(this);
+    m_logDock = new QDockWidget(tr("日志"), this);
+    m_logDock->setObjectName(QStringLiteral("logDock"));
+    m_logDock->setWidget(m_logView);
+    addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
+    ui->menuView->addAction(m_logDock->toggleViewAction());
 }
 
 void MainWindow::setChromatogram(Chromatogram* chrom)
@@ -109,6 +130,7 @@ void MainWindow::setChromatogram(Chromatogram* chrom)
     m_chrom = chrom;
     m_controller.setChromatogram(chrom);
     ui->chromatogramView->setChromatogram(chrom);
+    m_infoView->setChromatogram(chrom);
     statusBar()->showMessage(
         tr("色谱已加载：%1").arg(chrom ? chrom->name() : QString()), 3000);
 }
@@ -124,12 +146,25 @@ void MainWindow::setPeaks(const QList<Peak>& peaks)
 {
     m_peakView->setPeaks(peaks);
     ui->chromatogramView->setPeaks(peaks);
-    statusBar()->showMessage(tr("%1 个峰").arg(peaks.size()), 3000);
+    m_infoView->setPeaks(peaks.size());
+    if (m_chrom) {
+        m_statusInfo->setText(tr("%1 个峰 · RT %2–%3 min")
+                                  .arg(peaks.size())
+                                  .arg(m_chrom->startTimeMs() / 60000.0, 0, 'f', 2)
+                                  .arg(m_chrom->stopTimeMs() / 60000.0, 0, 'f', 2));
+    } else {
+        m_statusInfo->setText(tr("%1 个峰").arg(peaks.size()));
+    }
 }
 
 void MainWindow::runMethod()
 {
+    if (!m_chrom || !m_method)
+        return;
     m_controller.onChromatogramChanged();
+    emit sigLogMessage(tr("管线已执行：%1 步，检出 %2 个峰")
+                           .arg(m_method->steps.size())
+                           .arg(m_pipeline.peaks().size()));
 }
 
 void MainWindow::onPeaksUpdated(const QList<Peak>& peaks)
@@ -145,8 +180,6 @@ void MainWindow::onRunMethod()
     }
     runMethod();
     statusBar()->showMessage(tr("管线已执行"), 3000);
-    emit sigLogMessage(tr("管线已执行：%1 步，检出 %2 个峰")
-                           .arg(m_method->steps.size()).arg(m_pipeline.peaks().size()));
 }
 
 bool MainWindow::importCsv(const QString& filePath)
@@ -309,5 +342,7 @@ Chromatogram* MainWindow::chromatogram() const { return m_chrom; }
 ChromatogramView* MainWindow::chromatogramView() const { return ui->chromatogramView; }
 PeakTableView* MainWindow::peakTableView() const { return m_peakView; }
 MethodEditorView* MainWindow::methodEditorView() const { return m_methodEditor; }
+InfoView* MainWindow::infoView() const { return m_infoView; }
+LogView* MainWindow::logView() const { return m_logView; }
 
 } // namespace cdsw

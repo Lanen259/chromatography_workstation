@@ -13,7 +13,7 @@ else()
 endif()
 
 # 复用页面 .ui（cdsw_add_module 不 glob .ui，手动加入；AUTOUIC 生成 ui_*.h）
-target_sources(ui PRIVATE src/MethodEditorView.ui src/MainWindow.ui)
+target_sources(ui PRIVATE src/MethodEditorView.ui src/MainWindow.ui src/InfoView.ui src/LogView.ui)
 
 # 资源（主题 QSS；AUTORCC 生成 qrc_*.cpp）
 target_sources(ui PRIVATE resources/ui.qrc)
