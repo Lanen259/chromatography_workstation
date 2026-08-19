@@ -32,7 +32,7 @@
 | acq | dev-acq | worktrees/acq/ | ✅ 已合 main | M3a 实时反控协议接收链完成（`HwRealtimeReceiver` 解码 data3 0–17 + RingBuffer 覆盖最旧保新 + AcquisitionController + MockDevice/§5 复刻端到端，ctest 全绿，2026-08-18 合回 main）；**下一步 M3b：IPC 端点（QLocalServer 适配 CtrlPanel）** | 无（社区版无采集代码） | 无 |
 | io | dev-io | worktrees/io/ | 待合并 | M4 完成（ImporterCsv/ExporterCsv + ConverterRegistry + 回环/空文件/坏行/表头变体/导出字节/注册表/失败路径测试 7 用例全绿 + 全量构建 0 error，2026-08-18；等主控审查合并） | MODULE_01 | 无 |
 | report | dev-report | worktrees/report/ | ✅ 待合并 | M5 完成（契约 §4.5 接口 + ReporterCsv 分区式 CSV + ReportRegistry + 金样逐字节比对测试全绿，2026-08-18，ctest report 全绿） | MODULE_06 | 无 |
-| ui | dev-ui | worktrees/ui/ | 待开工 | M6 | MODULE_07, MODULE_08 | 等接口稳定 |
+| ui | dev-ui | worktrees/ui/ | ✅ 待合并 | M6 完成（契约 §4.6 视图：ChromatogramView 自绘缩放/平移/选区 + PeakTableModel/View + MethodEditorView + MainWindow .ui 装配 + SelectionController 桥接；offscreen 冒烟 7 用例全绿，2026-08-18；含 io 导入接线 Phase B） | MODULE_07, MODULE_08 | 无 |
 
 > 逆向文档路径：`docs/openchrom-reverse-engineering/module/`（MODULE_XX 前缀）。
 > 状态取值：待开工 → 进行中 → 待合并 → ✅ 已合 main。
