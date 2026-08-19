@@ -1,7 +1,9 @@
-// main.cpp —— 主程序（M7 集成：装配 ui MainWindow + 6 模块链路）
-// 正常启动：显示主窗口（导入 io → 运行 core_processing 管线 → 导出 report → 曲线显示）。
+// main.cpp —— 主程序（M7 集成 + CDS 1.0 产品化：High-DPI / 工作区持久化 / 演示数据）
+// 正常启动：装配 ui MainWindow（io 导入 → core_processing 管线 → report 导出 → 曲线显示），
+//           恢复上次布局，加载演示数据开箱即用。
 // --e2e：无头自检全链路（导入→处理→报告→显示），exit 0 成功。
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
@@ -14,24 +16,6 @@
 #include <ui/PeakTableView.h>
 
 namespace {
-
-// 双高斯峰样本信号（0..2000ms 步 10ms，201 点）
-cdsw::Chromatogram makeSampleChromatogram()
-{
-    cdsw::Chromatogram chrom;
-    QVector<cdsw::Signal> pts;
-    for (int t = 0; t <= 2000; t += 10) {
-        const double d1 = (t - 600.0) / 120.0;
-        const double d2 = (t - 1200.0) / 120.0;
-        cdsw::Signal s;
-        s.retentionTimeMs = t;
-        s.intensity = 100.0 * std::exp(-0.5 * d1 * d1) + 80.0 * std::exp(-0.5 * d2 * d2);
-        pts.append(s);
-    }
-    chrom.setSignalPoints(pts);
-    chrom.setName(QStringLiteral("Demo"));
-    return chrom;
-}
 
 cdsw::Method makeDefaultMethod()
 {
@@ -100,15 +84,23 @@ int runE2E()
 
 int main(int argc, char *argv[])
 {
+    // High-DPI（须在 QApplication 创建前）
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
     QApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("cdsw"));
+    QCoreApplication::setApplicationName(QStringLiteral("chromatography_workstation"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("1.0.0"));
+
     if (app.arguments().contains(QStringLiteral("--e2e")))
         return runE2E();
 
     cdsw::MainWindow window;
-    cdsw::Method method = makeDefaultMethod();
-    window.setMethod(&method);
-    cdsw::Chromatogram demo = makeSampleChromatogram();
-    window.setChromatogram(&demo);
+    window.restoreWorkspace();          // 恢复窗口几何与停靠布局
+    window.loadDemoData();              // 开箱即用：演示数据 + 峰检测方法
     window.show();
-    return app.exec();
+    const int code = app.exec();
+    window.saveWorkspace();             // 记忆布局
+    return code;
 }

@@ -26,6 +26,8 @@
 
 #include <memory>
 
+#include <cmath>
+
 #include "ui_MainWindow.h"
 
 namespace cdsw {
@@ -45,6 +47,11 @@ MainWindow::MainWindow(QWidget* parent)
 {
     applyTheme();   // 现代暗色主题（资源 :/theme.qss）
     ui->setupUi(this);
+    // 演示数据动作（C++ 建，置 File 顶部 + 工具栏首格）
+    QAction* actionLoadDemo = new QAction(tr("加载演示数据"), this);
+    connect(actionLoadDemo, &QAction::triggered, this, &MainWindow::loadDemoData);
+    ui->menuFile->addAction(actionLoadDemo);
+    ui->menuFile->addSeparator();
     ui->menuFile->addAction(ui->actionImportCsv);
     ui->menuFile->addAction(ui->actionRunMethod);
     ui->menuFile->addSeparator();
@@ -58,6 +65,7 @@ MainWindow::MainWindow(QWidget* parent)
     ui->toolbar->addAction(ui->actionRunMethod);
     ui->toolbar->addAction(ui->actionImportCsv);
     ui->toolbar->addAction(ui->actionExportCsv);
+    ui->toolbar->addAction(actionLoadDemo);
 
     connect(ui->actionImportCsv, &QAction::triggered, this, &MainWindow::onImportCsv);
     connect(ui->actionRunMethod, &QAction::triggered, this, &MainWindow::onRunMethod);
@@ -322,6 +330,34 @@ void MainWindow::onExportCsv()
         statusBar()->showMessage(tr("报告已导出：%1").arg(path), 3000);
     else
         QMessageBox::warning(this, tr("导出失败"), tr("无法写入文件：%1").arg(path));
+}
+
+void MainWindow::loadDemoData()
+{
+    m_chromData = Chromatogram();
+    QVector<Signal> pts;
+    pts.reserve(201);
+    for (int t = 0; t <= 2000; t += 10) {
+        const double d1 = (t - 600.0) / 120.0;
+        const double d2 = (t - 1200.0) / 120.0;
+        pts.append(Signal{ qint64(t),
+                           100.0 * std::exp(-0.5 * d1 * d1) + 80.0 * std::exp(-0.5 * d2 * d2) });
+    }
+    m_chromData.setSignalPoints(pts);
+    m_chromData.setName(tr("演示数据"));
+    m_chromData.setConverterId(QStringLiteral("demo"));
+    m_chromData.setScanDelayMs(0);
+    m_chromData.setScanIntervalMs(10);
+    setChromatogram(&m_chromData);
+
+    m_methodData = Method();
+    m_methodData.steps.append(ProcessingStep{
+        QStringLiteral("first_derivative_peak_detector"),
+        QVariantMap{ { QStringLiteral("threshold"), QStringLiteral("MEDIUM") },
+                     { QStringLiteral("windowSize"), 0 } } });
+    m_methodName = tr("峰检测");
+    setMethod(&m_methodData);
+    emit sigLogMessage(tr("已加载演示数据（双峰信号，%1 点）").arg(pts.size()));
 }
 
 void MainWindow::restoreWorkspace()

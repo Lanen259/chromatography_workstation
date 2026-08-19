@@ -36,6 +36,7 @@ public:
     bool exportCsv(const QString& filePath);   // 生成 CSV 报告到路径（report 模块）
     bool openMethod(const QString& filePath);  // JSON 方法文件载入（P4）
     bool saveMethod(const QString& filePath) const;
+    void loadDemoData();                       // 内置演示数据（双峰信号 + 峰检测方法）
     Chromatogram* chromatogram() const;
     ChromatogramView* chromatogramView() const;
     PeakTableView* peakTableView() const;
