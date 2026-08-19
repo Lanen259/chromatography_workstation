@@ -64,8 +64,15 @@ void ChromatogramView::zoomAt(qint64 centerMs, double factor)
     const double newWindow = qMax(window / factor, kMinWindowMs);
     const double half = newWindow / 2.0;
     const double center = double(centerMs);
-    m_visibleStartMs = qint64(qMax(0.0, center - half));
-    m_visibleStopMs = qint64(qMax(0.0, center - half)) + qint64(newWindow);
+    const qint64 maxMs = m_chrom ? m_chrom->stopTimeMs() : m_visibleStopMs;
+    qint64 start = qint64(qMax(0.0, center - half));
+    qint64 stop = start + qint64(newWindow);
+    if (stop > maxMs) {                       // 夹上界：可见窗不漂出谱尾
+        stop = maxMs;
+        start = qMax<qint64>(0, maxMs - qint64(newWindow));
+    }
+    m_visibleStartMs = start;
+    m_visibleStopMs = qMax(stop, start + 1);
     update();
 }
 
@@ -102,13 +109,28 @@ void ChromatogramView::paintEvent(QPaintEvent*)
         return;
     }
 
-    // 可见范围内的点连成折线
-    double minY = m_chrom ? m_chrom->minIntensity() : 0.0;
-    double maxY = m_chrom ? m_chrom->maxIntensity() : 1.0;
-    if (maxY - minY <= 0.0)
-        maxY = minY + 1.0;
-
+    // 可见范围内点连折线；Y 轴范围取自「可见显示点」（processedPoints 滤波后强度范围才是真实绘制范围）
     QPolygonF poly;
+    double minY = 0.0, maxY = 1.0;
+    bool haveVisible = false;
+    for (const Signal& s : pts) {
+        if (s.retentionTimeMs < m_visibleStartMs || s.retentionTimeMs > m_visibleStopMs)
+            continue;
+        if (!haveVisible) {
+            minY = maxY = s.intensity;
+            haveVisible = true;
+        } else {
+            minY = qMin(minY, s.intensity);
+            maxY = qMax(maxY, s.intensity);
+        }
+    }
+    if (haveVisible && maxY - minY <= 0.0)
+        maxY = minY + 1.0;
+    if (!haveVisible) {
+        p.setPen(Qt::gray);
+        p.drawText(rect(), Qt::AlignCenter, tr("No data in range"));
+        return;
+    }
     for (const Signal& s : pts) {
         if (s.retentionTimeMs < m_visibleStartMs || s.retentionTimeMs > m_visibleStopMs)
             continue;
@@ -158,7 +180,9 @@ void ChromatogramView::mouseReleaseEvent(QMouseEvent* event)
         const qint64 a = xToMs(m_dragStart.x());
         const qint64 b = xToMs(event->pos().x());
         setSelectionRange(a, b);
-        emit sigSelectionRangeChanged(m_selStartMs, m_selStopMs);
+        // 单击（零宽选区）不广播：最小阈值避免误触「选区变化→重跑管线」
+        if (m_selStopMs > m_selStartMs)
+            emit sigSelectionRangeChanged(m_selStartMs, m_selStopMs);
     }
     QWidget::mouseReleaseEvent(event);
 }

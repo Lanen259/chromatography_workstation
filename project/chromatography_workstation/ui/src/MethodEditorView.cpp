@@ -72,6 +72,7 @@ void MethodEditorView::onAddStep()
         return;
     m_method->steps.append(ProcessingStep{ id, QVariantMap() });
     ui->listSteps->addItem(id);
+    ui->listSteps->setCurrentRow(ui->listSteps->count() - 1);   // 新步骤立即选中，参数表可见
     emit sigMethodChanged();
 }
 

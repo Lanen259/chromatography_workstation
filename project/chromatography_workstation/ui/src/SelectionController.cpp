@@ -6,6 +6,11 @@ namespace cdsw {
 SelectionController::SelectionController(Selection* selection, ProcessingPipeline* pipeline, QObject* parent)
     : QObject(parent), m_selection(selection), m_pipeline(pipeline)
 {
+    // 契约 §4.6「唯一握手点」：选区变化 → 重跑管线 → 峰表/结果刷新
+    if (m_selection) {
+        connect(m_selection, &Selection::sigSelectionChanged,
+                this, [this] { onChromatogramChanged(); });
+    }
 }
 
 void SelectionController::setChromatogram(Chromatogram* chrom) { m_chrom = chrom; }

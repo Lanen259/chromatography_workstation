@@ -76,6 +76,7 @@ class UiTest : public QObject
     Q_OBJECT
 private slots:
     void selectionControllerRunsPipeline();
+    void selectionChangeRerunsPipeline();
     void peakTableModelShowsPeaks();
     void peakTableModelEmpty();
     void chromatogramViewRendersSelectsAndZooms();
@@ -107,6 +108,25 @@ void UiTest::selectionControllerRunsPipeline()
     const QList<Peak> peaks = spy.at(0).at(0).value<QList<Peak>>();
     QCOMPARE(peaks.size(), 2);
     QVERIFY(chrom.isDirty());   // 契约 §4.1：管线跑过 → 脏标记置 true
+}
+
+void UiTest::selectionChangeRerunsPipeline()
+{
+    // 契约 §4.6 握手点：Selection.sigSelectionChanged → SelectionController 重跑管线
+    qRegisterMetaType<QList<cdsw::Peak>>("QList<Peak>");
+    Registry& reg = Registry::instance();
+    ProcessingPipeline pipeline(reg);
+    Selection selection;
+    SelectionController controller(&selection, &pipeline);
+    Chromatogram chrom = makeTwoPeakChrom();
+    Method method = makePeakDetectMethod();
+    controller.setChromatogram(&chrom);
+    controller.setMethod(&method);
+
+    QSignalSpy spy(&controller, &SelectionController::sigPeaksUpdated);
+    selection.setRange(0, 2000);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<QList<Peak>>().size(), 2);
 }
 
 void UiTest::peakTableModelShowsPeaks()
