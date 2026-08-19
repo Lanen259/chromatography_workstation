@@ -139,6 +139,7 @@ void MainWindow::setChromatogram(Chromatogram* chrom)
     m_controller.setChromatogram(chrom);
     ui->chromatogramView->setChromatogram(chrom);
     m_infoView->setChromatogram(chrom);
+    setPeaks(QList<Peak>());   // 新数据清旧峰/选区/状态（跨数据不错标）
     statusBar()->showMessage(
         tr("色谱已加载：%1").arg(chrom ? chrom->name() : QString()), 3000);
 }
@@ -322,10 +323,12 @@ void MainWindow::buildReportData(ReportData& out) const
 
 void MainWindow::onExportCsv()
 {
+    const QString lastDir = appSettings().value(QStringLiteral("lastExportDir")).toString();
     const QString path = QFileDialog::getSaveFileName(
-        this, tr("导出 CSV 报告"), QString(), tr("CSV (*.csv)"));
+        this, tr("导出 CSV 报告"), lastDir, tr("CSV (*.csv)"));
     if (path.isEmpty())
         return;
+    appSettings().setValue(QStringLiteral("lastExportDir"), QFileInfo(path).absolutePath());
     if (exportCsv(path))
         statusBar()->showMessage(tr("报告已导出：%1").arg(path), 3000);
     else

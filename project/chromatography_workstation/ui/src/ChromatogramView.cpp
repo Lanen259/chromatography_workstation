@@ -23,7 +23,6 @@ constexpr int kTargetXTicks = 6;          // X 轴目标刻度数
 constexpr int kTargetYTicks = 5;          // Y 轴目标刻度数
 constexpr double kYHeadroom = 1.05;       // Y 顶部留白系数
 constexpr int kOverviewHeight = 34;       // 概览条高度
-constexpr int kDecimateMax = 2000;        // 曲线/概览抽稀上限
 
 // 1/2/5 × 10^n 的“好看”步长
 double niceStep(double span, int target)
@@ -425,8 +424,7 @@ void ChromatogramView::mousePressEvent(QMouseEvent* event)
     }
     if (event->button() == Qt::LeftButton && plot.contains(event->pos())) {
         m_selecting = true;
-        m_dragLast = event->pos();
-        setSelectionRange(xToMs(m_dragLast.x()), xToMs(m_dragLast.x()));
+        m_dragLast = event->pos();   // 按下的锚点；选区在 move/release 时写出（单击不清旧选区）
     } else if (event->button() == Qt::MiddleButton && plot.contains(event->pos())) {
         m_panning = true;
         m_dragLast = event->pos();
@@ -478,10 +476,12 @@ void ChromatogramView::mouseReleaseEvent(QMouseEvent* event)
 {
     if (m_selecting && event->button() == Qt::LeftButton) {
         m_selecting = false;
-        setSelectionRange(xToMs(m_dragLast.x()), xToMs(event->pos().x()));
-        // 单击（零宽选区）不广播：避免误触「选区变化→重跑管线」
-        if (m_selStopMs > m_selStartMs)
+        const qint64 a = xToMs(m_dragLast.x());
+        const qint64 b = xToMs(event->pos().x());
+        if (b > a) {                          // 零宽=单击，不动旧选区也不广播
+            setSelectionRange(a, b);
             emit sigSelectionRangeChanged(m_selStartMs, m_selStopMs);
+        }
     } else if (m_panning) {
         m_panning = false;
         unsetCursor();
