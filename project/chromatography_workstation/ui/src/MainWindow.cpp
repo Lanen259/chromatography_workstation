@@ -5,6 +5,7 @@
 #include <ui/ChromatogramView.h>
 #include <ui/PeakTableView.h>
 #include <ui/MethodEditorView.h>
+#include <ui/Theme.h>
 
 #include <QtCore/qdatetime.h>
 #include <QtWidgets/qaction.h>
@@ -27,6 +28,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_pipeline(Registry::instance())
     , m_controller(&m_selection, &m_pipeline, this)
 {
+    applyTheme();   // 现代暗色主题（资源 :/theme.qss）
     ui->setupUi(this);
     ui->menuFile->addAction(ui->actionImportCsv);
     ui->menuFile->addAction(ui->actionRunMethod);

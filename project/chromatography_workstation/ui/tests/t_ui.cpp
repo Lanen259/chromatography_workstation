@@ -14,6 +14,7 @@
 #include <ui/ChromatogramView.h>
 #include <ui/MethodEditorView.h>
 #include <ui/MainWindow.h>
+#include <ui/Theme.h>
 
 #include <QComboBox>
 #include <QFile>
@@ -83,6 +84,7 @@ private slots:
     void methodEditorEditsSteps();
     void mainWindowAssemblesAndRuns();
     void mainWindowImportsCsv();
+    void themeAppliesAndProvidesPalette();
 };
 
 void UiTest::selectionControllerRunsPipeline()
@@ -293,6 +295,17 @@ void UiTest::mainWindowImportsCsv()
     // 失败路径：不存在 / 未知扩展名
     QVERIFY(!window.importCsv(dir.filePath(QStringLiteral("nope.csv"))));
     QVERIFY(!window.importCsv(QStringLiteral("x.zzz")));
+}
+
+void UiTest::themeAppliesAndProvidesPalette()
+{
+    cdsw::applyTheme();
+    QVERIFY(!qApp->styleSheet().isEmpty());   // :/theme.qss 资源加载并应用（AUTORCC 接线）
+    const cdsw::ThemeColors c = cdsw::ThemeColors::dark();
+    QVERIFY(c.accent.isValid());
+    QVERIFY(c.curve.isValid());
+    QVERIFY(c.text.isValid());
+    QVERIFY(c.window.isValid());
 }
 
 QTEST_MAIN(UiTest)

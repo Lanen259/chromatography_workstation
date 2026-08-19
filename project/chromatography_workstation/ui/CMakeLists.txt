@@ -15,6 +15,9 @@ endif()
 # 复用页面 .ui（cdsw_add_module 不 glob .ui，手动加入；AUTOUIC 生成 ui_*.h）
 target_sources(ui PRIVATE src/MethodEditorView.ui src/MainWindow.ui)
 
+# 资源（主题 QSS；AUTORCC 生成 qrc_*.cpp）
+target_sources(ui PRIVATE resources/ui.qrc)
+
 # offscreen 冒烟：ui 测试在无显示环境跑（QT_QPA_PLATFORM=offscreen）
 if(CDSW_BUILD_TESTS AND TARGET ui_tests)
     set_tests_properties(ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
